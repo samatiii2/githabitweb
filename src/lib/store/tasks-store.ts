@@ -2,6 +2,11 @@ import { create } from 'zustand'
 import { createClient } from '@/lib/supabase/client'
 import type { Task, TaskProject, TaskLabel, TaskProjectLink, TaskLabelLink } from '@/lib/types/database'
 
+export type SmartView = 'inbox' | 'today' | 'upcoming' | 'all' | 'completed'
+export type SortBy = 'priority' | 'due_date' | 'created_at' | 'title'
+export type GroupBy = 'none' | 'status' | 'priority' | 'due_date'
+export type ViewMode = 'list' | 'board'
+
 interface TasksState {
   tasks: Task[]
   projects: TaskProject[]
@@ -9,14 +14,32 @@ interface TasksState {
   projectLinks: TaskProjectLink[]
   labelLinks: TaskLabelLink[]
   loading: boolean
-  activeTab: 'inbox' | 'projects'
-  viewMode: 'list' | 'calendar' | 'board'
+
+  // View state
+  smartView: SmartView
+  viewMode: ViewMode
   searchQuery: string
+  sortBy: SortBy
+  sortDirection: 'asc' | 'desc'
+  groupBy: GroupBy
+  priorityFilter: number[]
+  selectedProjectId: string | null
+  selectedLabelId: string | null
+  selectedTaskId: string | null
 
-  setActiveTab: (tab: 'inbox' | 'projects') => void
-  setViewMode: (mode: 'list' | 'calendar' | 'board') => void
+  // Setters
+  setSmartView: (view: SmartView) => void
+  setViewMode: (mode: ViewMode) => void
   setSearchQuery: (q: string) => void
+  setSortBy: (sort: SortBy) => void
+  setSortDirection: (dir: 'asc' | 'desc') => void
+  setGroupBy: (group: GroupBy) => void
+  setPriorityFilter: (priorities: number[]) => void
+  setSelectedProjectId: (id: string | null) => void
+  setSelectedLabelId: (id: string | null) => void
+  setSelectedTaskId: (id: string | null) => void
 
+  // Data actions
   fetchAll: () => Promise<void>
   createTask: (data: Partial<Task>) => Promise<Task | null>
   updateTask: (id: string, data: Partial<Task>) => Promise<void>
@@ -27,6 +50,17 @@ interface TasksState {
   deleteProject: (id: string) => Promise<void>
 
   createLabel: (data: { name: string; color_hex: string }) => Promise<void>
+  deleteLabel: (id: string) => Promise<void>
+
+  addLabelToTask: (taskId: string, labelId: string) => Promise<void>
+  removeLabelFromTask: (taskId: string, labelId: string) => Promise<void>
+  addProjectToTask: (taskId: string, projectId: string) => Promise<void>
+  removeProjectFromTask: (taskId: string, projectId: string) => Promise<void>
+
+  // Helpers
+  getLabelsForTask: (taskId: string) => TaskLabel[]
+  getProjectsForTask: (taskId: string) => TaskProject[]
+  getSubtasks: (taskId: string) => Task[]
 }
 
 export const useTasksStore = create<TasksState>((set, get) => ({
@@ -36,13 +70,36 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   projectLinks: [],
   labelLinks: [],
   loading: true,
-  activeTab: 'inbox',
+
+  smartView: 'inbox',
   viewMode: 'list',
   searchQuery: '',
+  sortBy: 'created_at',
+  sortDirection: 'desc',
+  groupBy: 'none',
+  priorityFilter: [],
+  selectedProjectId: null,
+  selectedLabelId: null,
+  selectedTaskId: null,
 
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  setSmartView: (view) => set({ smartView: view, selectedProjectId: null, selectedLabelId: null }),
   setViewMode: (mode) => set({ viewMode: mode }),
   setSearchQuery: (q) => set({ searchQuery: q }),
+  setSortBy: (sort) => set({ sortBy: sort }),
+  setSortDirection: (dir) => set({ sortDirection: dir }),
+  setGroupBy: (group) => set({ groupBy: group }),
+  setPriorityFilter: (priorities) => set({ priorityFilter: priorities }),
+  setSelectedProjectId: (id) => set({
+    selectedProjectId: id,
+    selectedLabelId: null,
+    ...(id ? { smartView: 'all' as SmartView } : {}),
+  }),
+  setSelectedLabelId: (id) => set({
+    selectedLabelId: id,
+    selectedProjectId: null,
+    ...(id ? { smartView: 'all' as SmartView } : {}),
+  }),
+  setSelectedTaskId: (id) => set({ selectedTaskId: id }),
 
   fetchAll: async () => {
     const supabase = createClient()
@@ -92,7 +149,10 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   deleteTask: async (id) => {
     const supabase = createClient()
     await supabase.from('tasks').delete().eq('id', id)
-    set(s => ({ tasks: s.tasks.filter(t => t.id !== id) }))
+    set(s => ({
+      tasks: s.tasks.filter(t => t.id !== id),
+      selectedTaskId: s.selectedTaskId === id ? null : s.selectedTaskId,
+    }))
   },
 
   toggleTask: async (id) => {
@@ -106,7 +166,6 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     }
     await get().updateTask(id, data)
 
-    // Handle recurrence: create next task
     if (isCompleted && task.recurrence !== 'none' && task.due_date) {
       const dueDate = new Date(task.due_date)
       let nextDate: Date
@@ -142,5 +201,51 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     const supabase = createClient()
     const { data: label } = await supabase.from('task_labels').insert({ ...data, sort_order: 0 }).select().single()
     if (label) set(s => ({ labels: [...s.labels, label] }))
+  },
+
+  deleteLabel: async (id) => {
+    const supabase = createClient()
+    await supabase.from('task_labels').delete().eq('id', id)
+    set(s => ({ labels: s.labels.filter(l => l.id !== id) }))
+  },
+
+  addLabelToTask: async (taskId, labelId) => {
+    const supabase = createClient()
+    const { data } = await supabase.from('task_label_links').insert({ task_id: taskId, label_id: labelId }).select().single()
+    if (data) set(s => ({ labelLinks: [...s.labelLinks, data] }))
+  },
+
+  removeLabelFromTask: async (taskId, labelId) => {
+    const supabase = createClient()
+    await supabase.from('task_label_links').delete().eq('task_id', taskId).eq('label_id', labelId)
+    set(s => ({ labelLinks: s.labelLinks.filter(l => !(l.task_id === taskId && l.label_id === labelId)) }))
+  },
+
+  addProjectToTask: async (taskId, projectId) => {
+    const supabase = createClient()
+    const { data } = await supabase.from('task_project_links').insert({ task_id: taskId, project_id: projectId, sort_order: 0 }).select().single()
+    if (data) set(s => ({ projectLinks: [...s.projectLinks, data] }))
+  },
+
+  removeProjectFromTask: async (taskId, projectId) => {
+    const supabase = createClient()
+    await supabase.from('task_project_links').delete().eq('task_id', taskId).eq('project_id', projectId)
+    set(s => ({ projectLinks: s.projectLinks.filter(l => !(l.task_id === taskId && l.project_id === projectId)) }))
+  },
+
+  getLabelsForTask: (taskId) => {
+    const { labelLinks, labels } = get()
+    const ids = labelLinks.filter(l => l.task_id === taskId).map(l => l.label_id)
+    return labels.filter(l => ids.includes(l.id))
+  },
+
+  getProjectsForTask: (taskId) => {
+    const { projectLinks, projects } = get()
+    const ids = projectLinks.filter(l => l.task_id === taskId).map(l => l.project_id)
+    return projects.filter(p => ids.includes(p.id))
+  },
+
+  getSubtasks: (taskId) => {
+    return get().tasks.filter(t => t.parent_task_id === taskId)
   },
 }))
