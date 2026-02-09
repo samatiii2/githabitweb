@@ -5,10 +5,9 @@ import { CHALLENGES, CATEGORIES, type ChallengeTemplate } from '@/lib/data/chall
 import { useHabitsStore } from '@/lib/store/habits-store'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
-import { Check } from 'lucide-react'
+import { Check, Trophy, Clock, Zap } from 'lucide-react'
 
 export default function ChallengesPage() {
   const { createHabit } = useHabitsStore()
@@ -43,71 +42,99 @@ export default function ChallengesPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Challenges</h1>
-        <p className="text-sm text-muted-foreground">{filtered.length} challenges available</p>
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Challenges</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {filtered.length} challenges to boost your habits
+        </p>
       </div>
 
       {/* Category filter */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <Button
-          variant={!selectedCategory ? 'default' : 'outline'}
-          size="sm"
+        <button
           onClick={() => setSelectedCategory(null)}
-          className={cn('shrink-0 text-xs', !selectedCategory && 'bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90')}
+          className={cn(
+            'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
+            !selectedCategory
+              ? 'bg-[#3DD68C]/10 text-[#3DD68C] ring-1 ring-[#3DD68C]/20'
+              : 'bg-secondary text-muted-foreground hover:text-foreground'
+          )}
         >
           All
-        </Button>
+        </button>
         {CATEGORIES.map(cat => (
-          <Button
+          <button
             key={cat}
-            variant={selectedCategory === cat ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setSelectedCategory(cat)}
-            className={cn('shrink-0 text-xs', selectedCategory === cat && 'bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90')}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
+              selectedCategory === cat
+                ? 'bg-[#3DD68C]/10 text-[#3DD68C] ring-1 ring-[#3DD68C]/20'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
           >
             {cat}
-          </Button>
+          </button>
         ))}
       </div>
 
-      {/* Challenge cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Challenge grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(challenge => {
           const started = startedIds.has(challenge.id)
           return (
-            <div key={challenge.id} className="bg-card rounded-xl border border-border p-5 space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${challenge.colorHex}15` }}>
+            <div key={challenge.id} className="card-elevated rounded-xl p-5 transition-all duration-200 hover:scale-[1.01]">
+              {/* Header */}
+              <div className="flex items-start gap-3 mb-3">
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: `${challenge.colorHex}12` }}
+                >
                   <DynamicIcon name={challenge.iconName} className="w-5 h-5" style={{ color: challenge.colorHex }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold">{challenge.name}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{challenge.durationDays} days</span>
-                    <span>&middot;</span>
-                    <span style={{ color: challenge.colorHex }}>{challenge.category}</span>
+                  <p className="font-semibold text-sm leading-snug">{challenge.name}</p>
+                  <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {challenge.durationDays}d
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> {challenge.habits.length} habit{challenge.habits.length > 1 ? 's' : ''}
+                    </span>
                   </div>
                 </div>
-                {started ? (
-                  <div className="w-8 h-8 rounded-full bg-[#3DD68C]/20 flex items-center justify-center shrink-0">
-                    <Check className="w-4 h-4 text-[#3DD68C]" />
-                  </div>
-                ) : (
-                  <Button size="sm" onClick={() => setConfirmChallenge(challenge)} className="shrink-0 bg-[var(--c)] text-black hover:opacity-90 text-xs" style={{ '--c': challenge.colorHex } as React.CSSProperties}>
-                    Start
-                  </Button>
-                )}
               </div>
-              <p className="text-sm text-muted-foreground">{challenge.description}</p>
-              <div className="flex flex-wrap gap-1.5">
+
+              {/* Description */}
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">{challenge.description}</p>
+
+              {/* Habit pills */}
+              <div className="flex flex-wrap gap-1 mb-4">
                 {challenge.habits.map((h, i) => (
-                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${h.colorHex}15`, color: h.colorHex }}>
+                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                    style={{ backgroundColor: `${h.colorHex}10`, color: h.colorHex }}>
                     {h.title}
                   </span>
                 ))}
               </div>
+
+              {/* Action */}
+              {started ? (
+                <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-[#3DD68C]/8 text-[#3DD68C] text-sm font-medium">
+                  <Check className="w-4 h-4" /> Started
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => setConfirmChallenge(challenge)}
+                  className="w-full text-xs font-semibold h-9"
+                  style={{ backgroundColor: challenge.colorHex, color: '#000' }}
+                >
+                  <Trophy className="w-3.5 h-3.5 mr-1.5" /> Start challenge
+                </Button>
+              )}
             </div>
           )
         })}
@@ -118,12 +145,17 @@ export default function ChallengesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Start challenge?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmChallenge && `"${confirmChallenge.name}" will create ${confirmChallenge.habits.length} habit(s) for ${confirmChallenge.durationDays} days.`}
+              {confirmChallenge && (
+                <>
+                  <strong>{confirmChallenge.name}</strong> will create {confirmChallenge.habits.length} habit{confirmChallenge.habits.length > 1 ? 's' : ''} to track for {confirmChallenge.durationDays} days.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmChallenge && handleStart(confirmChallenge)} className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90">
+            <AlertDialogAction onClick={() => confirmChallenge && handleStart(confirmChallenge)}
+              className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90">
               Start
             </AlertDialogAction>
           </AlertDialogFooter>

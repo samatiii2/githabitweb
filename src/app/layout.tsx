@@ -13,16 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GitHabit - Track Your Habits",
-  description: "Build better habits with a beautiful GitHub-style heatmap tracker. Free, open source, works on any device.",
+  title: "GitHabit - Build Better Habits",
+  description: "Track your habits with a beautiful GitHub-style heatmap. Manage tasks, set challenges, and build consistency. Free, works on any device.",
   manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0e0e10",
+  themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({

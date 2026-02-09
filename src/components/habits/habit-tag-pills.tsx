@@ -14,13 +14,17 @@ export function HabitTagPills({ tags, colorHex, max, compact }: Props) {
   const overflow = max ? Math.max(0, tags.length - max) : 0
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       {visibleTags.map((tag) => (
         <span
           key={tag}
-          className={compact ? 'text-[9px] px-1.5 py-0.5 rounded-full' : 'text-[10px] px-2 py-0.5 rounded-full font-medium'}
+          className={
+            compact
+              ? 'text-[9px] px-1.5 py-0.5 rounded-full font-medium leading-none'
+              : 'text-[10px] px-2 py-0.5 rounded-full font-medium leading-none'
+          }
           style={{
-            backgroundColor: `${colorHex}15`,
+            backgroundColor: `${colorHex}10`,
             color: colorHex,
           }}
         >

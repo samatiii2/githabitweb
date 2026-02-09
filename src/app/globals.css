@@ -48,39 +48,39 @@
   --color-neon-green: #3DD68C;
 }
 
-/* Force dark mode — matching iOS app's dark-only theme */
+/* Refined dark theme — inspired by Linear, Vercel, Todoist */
 :root {
   --radius: 0.625rem;
-  --background: #0e0e10;
-  --foreground: #f0f0f0;
-  --card: #18181c;
-  --card-foreground: #f0f0f0;
-  --popover: #18181c;
-  --popover-foreground: #f0f0f0;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #111113;
+  --card-foreground: #fafafa;
+  --popover: #151518;
+  --popover-foreground: #fafafa;
   --primary: #3DD68C;
-  --primary-foreground: #0e0e10;
-  --secondary: #1e1e24;
-  --secondary-foreground: #f0f0f0;
-  --muted: #1e1e24;
-  --muted-foreground: #888;
-  --accent: #1e1e24;
-  --accent-foreground: #f0f0f0;
-  --destructive: #FF5252;
-  --border: rgba(255,255,255,0.08);
-  --input: rgba(255,255,255,0.08);
+  --primary-foreground: #052e16;
+  --secondary: #1a1a1f;
+  --secondary-foreground: #fafafa;
+  --muted: #1a1a1f;
+  --muted-foreground: #71717a;
+  --accent: #1f1f25;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.08);
   --ring: #3DD68C;
   --chart-1: #3DD68C;
-  --chart-2: #5B9FFF;
-  --chart-3: #B084FF;
-  --chart-4: #FF6B9D;
-  --chart-5: #FF9F5A;
-  --sidebar: #18181c;
-  --sidebar-foreground: #f0f0f0;
+  --chart-2: #60a5fa;
+  --chart-3: #a78bfa;
+  --chart-4: #fb7185;
+  --chart-5: #fbbf24;
+  --sidebar: #0c0c0e;
+  --sidebar-foreground: #fafafa;
   --sidebar-primary: #3DD68C;
-  --sidebar-primary-foreground: #0e0e10;
-  --sidebar-accent: #1e1e24;
-  --sidebar-accent-foreground: #f0f0f0;
-  --sidebar-border: rgba(255,255,255,0.08);
+  --sidebar-primary-foreground: #052e16;
+  --sidebar-accent: #151518;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
   --sidebar-ring: #3DD68C;
 }
 
@@ -93,7 +93,7 @@
   }
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -102,9 +102,45 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.25);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Card elevation utilities */
+.card-elevated {
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.card-elevated:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Subtle glow for active elements */
+.glow-green {
+  box-shadow: 0 0 20px rgba(61, 214, 140, 0.15);
+}
+
+/* Page transition */
+.page-enter {
+  animation: pageIn 0.2s ease-out;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Shimmer loading */
+.shimmer {
+  background: linear-gradient(90deg, var(--secondary) 25%, rgba(255,255,255,0.04) 50%, var(--secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { format, startOfYear, getDay, addDays, startOfDay, differenceInCalendarWeeks, startOfWeek } from 'date-fns'
+import { format, startOfYear, getDay, addDays, startOfDay } from 'date-fns'
 import type { HabitEntry } from '@/lib/types/database'
 import { generateYearHeatmapData, type HeatmapDay } from '@/lib/utils/stats'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -14,6 +14,7 @@ interface HeatmapProps {
   gap?: number
   showMonthLabels?: boolean
   showDayLabels?: boolean
+  rounded?: boolean
 }
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -27,20 +28,18 @@ export function Heatmap({
   gap = 3,
   showMonthLabels = true,
   showDayLabels = false,
+  rounded = false,
 }: HeatmapProps) {
   const days = useMemo(() => generateYearHeatmapData(entries, year), [entries, year])
   const todayStr = format(new Date(), 'yyyy-MM-dd')
 
-  // Organize into weeks (columns)
   const weeks = useMemo(() => {
     const result: HeatmapDay[][] = []
     const y = year ?? new Date().getFullYear()
     const jan1 = startOfYear(new Date(y, 0, 1))
-    // Adjust to Monday-based weeks (0=Mon, 6=Sun)
-    const dayOfWeek = (getDay(jan1) + 6) % 7 // Convert Sunday=0 to Monday=0
+    const dayOfWeek = (getDay(jan1) + 6) % 7
 
     let currentWeek: HeatmapDay[] = []
-    // Pad first week
     for (let i = 0; i < dayOfWeek; i++) {
       currentWeek.push({ date: new Date(0), dateStr: '', status: 'future' })
     }
@@ -65,14 +64,16 @@ export function Heatmap({
   const getCellColor = (day: HeatmapDay) => {
     if (!day.dateStr) return 'transparent'
     if (day.status === 'completed') return colorHex
-    if (day.status === 'skipped') return '#FF9F5A'
-    if (day.status === 'future') return `${colorHex}14`
-    return `${colorHex}26`
+    if (day.status === 'skipped') return '#f59e0b'
+    if (day.status === 'future') return 'rgba(255,255,255,0.03)'
+    return 'rgba(255,255,255,0.04)'
   }
 
-  const labelOffset = showDayLabels ? 30 : 0
+  const labelOffset = showDayLabels ? 28 : 0
   const svgWidth = labelOffset + weeks.length * (cellSize + gap)
-  const svgHeight = (showMonthLabels ? 16 : 0) + 7 * (cellSize + gap)
+  const monthLabelHeight = showMonthLabels ? 18 : 0
+  const svgHeight = monthLabelHeight + 7 * (cellSize + gap)
+  const rx = rounded ? cellSize / 2 : 2.5
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -88,9 +89,10 @@ export function Heatmap({
             <text
               key={`month-${weekIdx}`}
               x={labelOffset + weekIdx * (cellSize + gap)}
-              y={10}
+              y={11}
               className="fill-muted-foreground"
-              fontSize={9}
+              fontSize={10}
+              fontWeight={500}
             >
               {MONTH_LABELS[month]}
             </text>
@@ -103,9 +105,10 @@ export function Heatmap({
             <text
               key={`day-${i}`}
               x={0}
-              y={(showMonthLabels ? 16 : 0) + i * (cellSize + gap) + cellSize - 2}
+              y={monthLabelHeight + i * (cellSize + gap) + cellSize - 2}
               className="fill-muted-foreground"
               fontSize={9}
+              fontWeight={500}
             >
               {label}
             </text>
@@ -117,7 +120,7 @@ export function Heatmap({
           week.map((day, dayIdx) => {
             if (!day.dateStr) return null
             const x = labelOffset + weekIdx * (cellSize + gap)
-            const y = (showMonthLabels ? 16 : 0) + dayIdx * (cellSize + gap)
+            const y = monthLabelHeight + dayIdx * (cellSize + gap)
             const isToday = day.dateStr === todayStr
             return (
               <Tooltip key={day.dateStr}>
@@ -127,15 +130,15 @@ export function Heatmap({
                     y={y}
                     width={cellSize}
                     height={cellSize}
-                    rx={2}
+                    rx={rx}
                     fill={getCellColor(day)}
-                    stroke={isToday ? '#FF5252' : 'none'}
-                    strokeWidth={isToday ? 1.5 : 0}
-                    className="cursor-pointer transition-opacity hover:opacity-80"
+                    stroke={isToday ? 'rgba(255,255,255,0.4)' : 'none'}
+                    strokeWidth={isToday ? 1 : 0}
+                    className="cursor-pointer transition-all duration-100 hover:brightness-125"
                   />
                 </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  <p>{format(day.date, 'MMM d, yyyy')}</p>
+                <TooltipContent side="top" className="text-xs bg-popover border-border">
+                  <p className="font-medium">{format(day.date, 'EEEE, MMM d, yyyy')}</p>
                   <p className="capitalize text-muted-foreground">{day.status}</p>
                 </TooltipContent>
               </Tooltip>
@@ -148,8 +151,69 @@ export function Heatmap({
 }
 
 /**
- * Compact inline heatmap (used in grid/list cards)
+ * Compact inline heatmap for cards
  */
 export function CompactHeatmap({ entries, colorHex }: { entries: HabitEntry[]; colorHex: string }) {
-  return <Heatmap entries={entries} colorHex={colorHex} cellSize={10} gap={2} showMonthLabels={false} />
+  return <Heatmap entries={entries} colorHex={colorHex} cellSize={9} gap={2} showMonthLabels={false} />
+}
+
+/**
+ * Mini 7-week heatmap for small cards
+ */
+export function MiniHeatmap({ entries, colorHex }: { entries: HabitEntry[]; colorHex: string }) {
+  const days = useMemo(() => generateYearHeatmapData(entries), [entries])
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+  // Only last 12 weeks
+  const recentDays = days.slice(-84)
+
+  const weeks: HeatmapDay[][] = []
+  let currentWeek: HeatmapDay[] = []
+  for (const day of recentDays) {
+    currentWeek.push(day)
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek)
+      currentWeek = []
+    }
+  }
+  if (currentWeek.length > 0) {
+    while (currentWeek.length < 7) currentWeek.push({ date: new Date(0), dateStr: '', status: 'future' })
+    weeks.push(currentWeek)
+  }
+
+  const cellSize = 8
+  const gap = 2
+  const svgWidth = weeks.length * (cellSize + gap)
+  const svgHeight = 7 * (cellSize + gap)
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="overflow-visible">
+      {weeks.map((week, weekIdx) =>
+        week.map((day, dayIdx) => {
+          if (!day.dateStr) return null
+          const x = weekIdx * (cellSize + gap)
+          const y = dayIdx * (cellSize + gap)
+          const isToday = day.dateStr === todayStr
+          const fill = day.status === 'completed'
+            ? colorHex
+            : day.status === 'skipped'
+              ? '#f59e0b'
+              : day.status === 'future'
+                ? 'rgba(255,255,255,0.02)'
+                : 'rgba(255,255,255,0.04)'
+          return (
+            <rect
+              key={day.dateStr}
+              x={x} y={y}
+              width={cellSize} height={cellSize}
+              rx={2}
+              fill={fill}
+              stroke={isToday ? 'rgba(255,255,255,0.3)' : 'none'}
+              strokeWidth={isToday ? 0.5 : 0}
+            />
+          )
+        })
+      )}
+    </svg>
+  )
 }
