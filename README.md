@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GitHabit Web
+
+A web version of GitHabit — habit tracker with GitHub-style heatmap visualization.
+
+## Tech Stack
+
+- **Next.js 16** (App Router)
+- **Tailwind CSS** + **shadcn/ui**
+- **Supabase** (PostgreSQL, Auth, Storage)
+- **Zustand** (state management)
+- **Framer Motion** (animations)
+- **Lucide React** (icons)
 
 ## Getting Started
 
-First, run the development server:
+### 1. Create a Supabase Project
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Go to [supabase.com](https://supabase.com) and create a free project
+2. Go to **SQL Editor** and run the contents of `supabase-schema.sql` to create all tables
+3. Go to **Settings > API** and copy your **Project URL** and **anon key**
+
+### 2. Configure Environment
+
+Edit `.env.local` and replace the placeholders:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Install & Run
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+## Features
 
-To learn more about Next.js, take a look at the following resources:
+- **Habits**: Create, edit, delete. Boolean, numeric, and timer tracking.
+- **Heatmap**: Full year GitHub-style visualization.
+- **3 Display Modes**: Heatmap, Grid, List.
+- **Tags**: Colored pill chips on habits.
+- **Groups**: Organize habits by context.
+- **Statistics**: Streak, best streak, total, completion rate.
+- **Tasks**: CRUD with priorities (P1-P4), subtasks, recurring tasks.
+- **Task Views**: Inbox (list), Board (Kanban), Calendar.
+- **Projects & Labels**: Multi-assignment for tasks.
+- **36 Challenges**: Predefined templates across 6 categories.
+- **Search**: Quick search across habits and tasks.
+- **Authentication**: Email/password via Supabase Auth.
+- **Responsive**: Desktop sidebar + mobile bottom tabs.
+- **Dark Theme**: Neon dark theme matching the iOS app.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Deploy to Vercel for free:
 
-## Deploy on Vercel
+```bash
+npx vercel
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Or connect your GitHub repo to Vercel for automatic deployments.
