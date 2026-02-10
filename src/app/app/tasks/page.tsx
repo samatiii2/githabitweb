@@ -319,9 +319,9 @@ export default function TasksPage() {
   })()
 
   return (
-    <div className="flex h-[calc(100vh-52px)] lg:h-screen overflow-hidden">
+    <div className="flex h-[calc(100vh-52px-56px)] lg:h-screen overflow-hidden">
       {/* ═══ LEFT: Navigation Sidebar ═══ */}
-      <aside className="hidden md:flex flex-col border-r border-border bg-sidebar shrink-0 w-[220px] overflow-y-auto">
+      <aside className="hidden lg:flex flex-col border-r border-border bg-sidebar shrink-0 w-[220px] overflow-y-auto">
         {/* Smart views */}
         <div className="px-3 pt-4 pb-2">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">Views</p>
@@ -431,7 +431,7 @@ export default function TasksPage() {
       {/* ═══ CENTER: Task List / Board ═══ */}
       <div className={cn('flex-1 flex flex-col min-w-0 overflow-hidden', selectedTaskId && 'hidden lg:flex')}>
         {/* Header */}
-        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-3 space-y-3 shrink-0">
+        <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-3 space-y-3 shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl lg:text-2xl font-bold tracking-tight">{currentViewLabel}</h1>
@@ -446,7 +446,7 @@ export default function TasksPage() {
           </div>
 
           {/* Mobile smart view tabs */}
-          <div className="md:hidden flex items-center gap-1 overflow-x-auto pb-1">
+          <div className="lg:hidden flex items-center gap-1 overflow-x-auto pb-1">
             {SMART_VIEWS.map(view => {
               const active = smartView === view.id && !selectedProjectId && !selectedLabelId
               return (
@@ -593,7 +593,7 @@ export default function TasksPage() {
 
         {/* ─── List view ─── */}
         {viewMode === 'list' && (
-          <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-6">
+          <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-6">
             {groupedTasks.map(group => (
               <div key={group.key} className="mb-4">
                 {group.label && (
@@ -640,7 +640,7 @@ export default function TasksPage() {
 
         {/* ─── Board view ─── */}
         {viewMode === 'board' && (
-          <div className="flex-1 overflow-x-auto px-4 md:px-6 pb-6">
+          <div className="flex-1 overflow-x-auto px-4 lg:px-6 pb-6">
             <div className="flex gap-4 h-full min-w-[700px]">
               {boardColumns.map(col => {
                 const Icon = col.icon
