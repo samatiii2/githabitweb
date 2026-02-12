@@ -35,10 +35,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left panel - branding (desktop only) */}
       <div className="hidden lg:flex lg:w-1/2 bg-card items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#3DD68C]/5 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
         <div className="relative text-center space-y-6 px-12">
-          <div className="w-16 h-16 rounded-2xl bg-[#3DD68C]/10 flex items-center justify-center mx-auto">
-            <Flame className="w-8 h-8 text-[#3DD68C]" />
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+            <Flame className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-3xl font-bold tracking-tight">GitHabit</h2>
           <p className="text-muted-foreground max-w-sm">
@@ -66,8 +66,8 @@ export default function LoginPage() {
               <ArrowLeft className="w-3.5 h-3.5" /> Back to home
             </Link>
             <div className="lg:hidden flex items-center gap-2.5 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-[#3DD68C]/10 flex items-center justify-center">
-                <Flame className="w-4 h-4 text-[#3DD68C]" />
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Flame className="w-4 h-4 text-primary" />
               </div>
               <span className="font-bold text-sm">GitHabit</span>
             </div>
@@ -85,7 +85,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-[#3DD68C]/30 h-10"
+                className="bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-10"
               />
             </div>
             <div className="space-y-2">
@@ -97,7 +97,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-[#3DD68C]/30 h-10"
+                className="bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-10"
               />
             </div>
 
@@ -105,14 +105,14 @@ export default function LoginPage() {
               <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
             )}
 
-            <Button type="submit" className="w-full bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 font-semibold h-10" disabled={loading}>
+            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-[#3DD68C] hover:underline font-medium">
+            <Link href="/signup" className="text-primary hover:underline font-medium">
               Sign up
             </Link>
           </p>

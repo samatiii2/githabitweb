@@ -76,7 +76,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
       <SheetContent className="w-full sm:max-w-lg p-0 bg-background border-l border-border">
         <SheetHeader className="px-6 py-4 border-b border-border">
           <SheetTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="w-4 h-4 text-[#3DD68C]" />
+            <Sparkles className="w-4 h-4 text-primary" />
             New habit
           </SheetTitle>
         </SheetHeader>
@@ -109,7 +109,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
-                className="bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-[#3DD68C]/30 h-10"
+                className="bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-10"
               />
             </div>
 
@@ -143,7 +143,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                         onClick={() => setWeeklyTarget(n)}
                         className={cn(
                           'w-8 h-8 rounded-full text-xs font-bold transition-all',
-                          weeklyTarget === n ? 'text-white shadow-sm' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                          weeklyTarget === n ? 'text-[var(--icon-on-color)] shadow-sm' : 'bg-secondary text-muted-foreground hover:text-foreground'
                         )}
                         style={weeklyTarget === n ? { backgroundColor: colorHex } : undefined}
                       >
@@ -265,7 +265,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                       onClick={() => setGroupId(g.id)}
                       className={cn(
                         'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                        groupId === g.id ? 'text-white' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                        groupId === g.id ? 'text-[var(--icon-on-color)]' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
                       )}
                       style={groupId === g.id ? { backgroundColor: g.color_hex } : undefined}
                     >
@@ -312,7 +312,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                     onClick={() => setColorHex(c)}
                     className={cn(
                       'w-8 h-8 rounded-full transition-all',
-                      colorHex === c && 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110'
+                      colorHex === c && 'ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110'
                     )}
                     style={{ backgroundColor: c }}
                   />
@@ -327,7 +327,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
           <Button
             onClick={handleSubmit}
             disabled={!title.trim() || saving}
-            className="w-full bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 font-semibold h-10"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10"
           >
             {saving ? 'Creating...' : 'Create habit'}
           </Button>

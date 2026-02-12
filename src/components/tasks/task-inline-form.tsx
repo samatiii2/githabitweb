@@ -11,6 +11,7 @@ import {
   FolderOpen, Sun, Sofa, ArrowRight, X, Clock,
   ChevronDown
 } from 'lucide-react'
+import { DynamicIcon } from '@/components/dynamic-icon'
 import { cn } from '@/lib/utils'
 import { PRIORITY_LABELS } from '@/lib/constants'
 import { RecurrencePicker } from '@/components/tasks/recurrence-picker'
@@ -175,7 +176,7 @@ function PriorityPickerPopover({
             >
               <Flag className="w-4 h-4" style={{ color: PRIORITY_LABELS[p].color }} />
               <span className="text-sm font-medium flex-1">Priority {p}</span>
-              {value === p && <div className="w-1.5 h-1.5 rounded-full bg-[#3DD68C]" />}
+              {value === p && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
             </button>
           ))}
         </div>
@@ -213,7 +214,7 @@ function ProjectPickerPopover({
         >
           {selected ? (
             <>
-              <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: selected.color_hex }} />
+              <DynamicIcon name={selected.icon_name} className="w-3.5 h-3.5" style={{ color: selected.color_hex }} />
               {selected.name}
             </>
           ) : (
@@ -248,7 +249,7 @@ function ProjectPickerPopover({
           >
             <Inbox className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-medium flex-1">Inbox</span>
-            {!selectedProjectId && <div className="w-1.5 h-1.5 rounded-full bg-[#3DD68C]" />}
+            {!selectedProjectId && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
           </button>
 
           {/* Projects */}
@@ -264,9 +265,9 @@ function ProjectPickerPopover({
                     selectedProjectId === p.id ? 'bg-secondary' : 'hover:bg-secondary'
                   )}
                 >
-                  <Hash className="w-3.5 h-3.5" style={{ color: p.color_hex }} />
+                  <DynamicIcon name={p.icon_name} className="w-4 h-4" style={{ color: p.color_hex }} />
                   <span className="text-sm flex-1 truncate">{p.name}</span>
-                  {selectedProjectId === p.id && <div className="w-1.5 h-1.5 rounded-full bg-[#3DD68C]" />}
+                  {selectedProjectId === p.id && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
                 </button>
               ))}
             </div>
@@ -401,7 +402,7 @@ export function TaskInlineForm({
             size="sm"
             onClick={handleSubmit}
             disabled={!title.trim() || submitting}
-            className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 font-semibold text-xs h-8 px-4"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs h-8 px-4"
           >
             Add task
           </Button>

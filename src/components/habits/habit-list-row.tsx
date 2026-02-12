@@ -73,9 +73,9 @@ export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday,
                   ? habit.color_hex
                   : skipped
                     ? '#f59e0b'
-                    : 'rgba(255,255,255,0.04)',
-                color: completed || skipped ? '#fff' : 'rgba(255,255,255,0.2)',
-                outline: isToday ? '1px solid rgba(255,255,255,0.2)' : 'none',
+                    : 'var(--heatmap-empty)',
+                color: completed || skipped ? 'var(--icon-on-color)' : 'var(--heatmap-text-dim)',
+                outline: isToday ? '1px solid var(--heatmap-today-stroke)' : 'none',
               }}
             >
               {skipped && !completed ? '⏸' : ''}

@@ -29,18 +29,18 @@ export function HabitToggleButton({ colorHex, isCompleted, isSkipped, onClick, s
       )}
       style={{
         backgroundColor: isCompleted ? colorHex : isSkipped ? '#f59e0b' : 'transparent',
-        borderColor: !isCompleted && !isSkipped ? `${colorHex}40` : undefined,
+        borderColor: !isCompleted && !isSkipped ? `${colorHex}80` : undefined,
         boxShadow: isCompleted ? `0 0 12px ${colorHex}30` : undefined,
       }}
     >
       {isCompleted ? (
-        <Check className={iconSize} style={{ color: '#fff' }} strokeWidth={3} />
+        <Check className={iconSize} style={{ color: 'var(--icon-on-color)' }} strokeWidth={3} />
       ) : isSkipped ? (
-        <Pause className={iconSize} style={{ color: '#fff' }} strokeWidth={3} />
+        <Pause className={iconSize} style={{ color: 'var(--icon-on-color)' }} strokeWidth={3} />
       ) : (
         <div
           className={cn(size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5', 'rounded-full')}
-          style={{ backgroundColor: `${colorHex}30` }}
+          style={{ backgroundColor: `${colorHex}50` }}
         />
       )}
     </button>

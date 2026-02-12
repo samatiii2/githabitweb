@@ -3,10 +3,16 @@
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { LogOut, User, Info, Download, Shield, ExternalLink } from 'lucide-react'
+import { LogOut, User, Info, Download, Shield, ExternalLink, Sun, Moon, Palette } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto space-y-6">
@@ -19,7 +25,7 @@ export default function SettingsPage() {
       <div className="card-elevated rounded-xl overflow-hidden">
         <div className="p-5 space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-[#3DD68C]/10 flex items-center justify-center text-xl font-bold text-[#3DD68C]">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
               {user?.email?.[0]?.toUpperCase() ?? '?'}
             </div>
             <div className="flex-1">
@@ -34,6 +40,42 @@ export default function SettingsPage() {
             className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 h-10">
             <LogOut className="w-4 h-4" /> Sign out
           </Button>
+        </div>
+      </div>
+
+      {/* Appearance */}
+      <div className="card-elevated rounded-xl overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <Palette className="w-5 h-5 text-muted-foreground" />
+            <span className="font-semibold">Appearance</span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">Choose how GitHabit looks to you.</p>
+          {mounted && (
+            <div className="grid grid-cols-2 gap-3 max-w-sm">
+              {([
+                { value: 'light', icon: Sun, label: 'Light', desc: 'Clean & bright' },
+                { value: 'dark', icon: Moon, label: 'Dark', desc: 'Easy on the eyes' },
+              ] as const).map(({ value, icon: Icon, label, desc }) => (
+                <button
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
+                    theme === value
+                      ? 'border-primary bg-primary/5'
+                      : 'border-transparent bg-secondary/50 hover:bg-secondary'
+                  )}
+                >
+                  <Icon className={cn('w-6 h-6', theme === value ? 'text-primary' : 'text-muted-foreground')} />
+                  <div className="text-center">
+                    <p className={cn('text-sm font-medium', theme === value && 'text-primary')}>{label}</p>
+                    <p className="text-[10px] text-muted-foreground">{desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

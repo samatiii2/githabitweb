@@ -103,7 +103,7 @@ export default function DashboardPage() {
         </div>
         <Button
           onClick={() => setCreateOpen(true)}
-          className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 gap-2 font-semibold shadow-lg shadow-[#3DD68C]/10"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-semibold shadow-lg shadow-primary/10"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">New habit</span>
@@ -131,7 +131,7 @@ export default function DashboardPage() {
               <div className="card-elevated rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Today</span>
-                  <Target className="w-4 h-4 text-[#3DD68C]" />
+                  <Target className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl font-bold">{completedToday}</span>
@@ -188,7 +188,7 @@ export default function DashboardPage() {
             placeholder="Search habits..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-[#3DD68C]/30 h-9"
+            className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-9"
           />
         </div>
 
@@ -200,7 +200,7 @@ export default function DashboardPage() {
               className={cn(
                 'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
                 selectedGroupId === null
-                  ? 'bg-[#3DD68C]/10 text-[#3DD68C] ring-1 ring-[#3DD68C]/20'
+                  ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
                   : 'bg-secondary text-muted-foreground hover:text-foreground'
               )}
             >
@@ -274,7 +274,7 @@ export default function DashboardPage() {
           {!searchQuery && (
             <Button
               onClick={() => setCreateOpen(true)}
-              className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 gap-2 mt-2"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 mt-2"
             >
               <Plus className="w-4 h-4" /> Create first habit
             </Button>

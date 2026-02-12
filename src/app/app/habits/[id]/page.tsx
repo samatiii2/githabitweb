@@ -193,7 +193,7 @@ export default function HabitDetailPage() {
               Skipped
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-white/5" />
+              <div className="w-3 h-3 rounded-sm bg-foreground/5" />
               Missed
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function HabitDetailPage() {
               Skipped
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-white/5" />
+              <div className="w-3 h-3 rounded-sm bg-foreground/5" />
               Missed
             </div>
           </div>

@@ -35,7 +35,7 @@ export function HabitMonthCard({ habit, entries, isCompletedToday, isSkippedToda
             <DynamicIcon name={habit.icon_name} className="w-3.5 h-3.5" style={{ color: habit.color_hex }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-xs truncate group-hover:text-[#3DD68C] transition-colors">{habit.title}</p>
+            <p className="font-semibold text-xs truncate group-hover:text-primary transition-colors">{habit.title}</p>
             <div className="flex items-center gap-1 mt-0.5">
               <Flame className="w-2.5 h-2.5 text-orange-400" />
               <span className="text-[10px] text-muted-foreground">{streak}d</span>

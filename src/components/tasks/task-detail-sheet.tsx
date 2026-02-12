@@ -1,21 +1,24 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTasksStore } from '@/lib/store/tasks-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarWidget } from '@/components/ui/calendar'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { PRIORITY_LABELS } from '@/lib/constants'
 import {
   X, Trash2, Plus, Calendar, Flag, RefreshCw, Tag, FolderOpen,
-  CheckCircle2, Circle, Clock, ArrowRightCircle, ListTodo,
-  ChevronLeft
+  CheckCircle2, Circle, ArrowRightCircle, ListTodo,
+  ChevronLeft, CalendarDays, Sun, Sofa, ArrowRight
 } from 'lucide-react'
+import { DynamicIcon } from '@/components/dynamic-icon'
 import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
+import { format, addDays, nextSaturday, startOfWeek, addWeeks } from 'date-fns'
 import type { Task, RecurrenceRule, RecurrenceType } from '@/lib/types/database'
 import { RecurrencePicker } from '@/components/tasks/recurrence-picker'
 
@@ -35,6 +38,103 @@ function toDueDateString(d: string | null | undefined): string {
   if (!d) return ''
   if (d.length >= 10) return d.substring(0, 10) // "YYYY-MM-DD"
   return d
+}
+
+// ─── Quick date helpers ─────────────────────────────────
+function getQuickDates() {
+  const today = new Date()
+  const tomorrow = addDays(today, 1)
+  const weekend = nextSaturday(today)
+  const nextWeekStart = startOfWeek(addWeeks(today, 1), { weekStartsOn: 1 })
+  return [
+    { label: 'Today', date: today, icon: CalendarDays, sublabel: format(today, 'EEE'), color: 'text-emerald-400' },
+    { label: 'Tomorrow', date: tomorrow, icon: Sun, sublabel: format(tomorrow, 'EEE'), color: 'text-amber-400' },
+    { label: 'This weekend', date: weekend, icon: Sofa, sublabel: format(weekend, 'EEE'), color: 'text-blue-400' },
+    { label: 'Next week', date: nextWeekStart, icon: ArrowRight, sublabel: format(nextWeekStart, 'EEE d MMM'), color: 'text-purple-400' },
+  ]
+}
+
+// ─── Due Date Picker (calendar + quick dates) ───────────
+function DueDatePicker({ value, onChange, onClear }: { value: string; onChange: (v: string) => void; onClear: () => void }) {
+  const [open, setOpen] = useState(false)
+  const quickDates = useMemo(() => getQuickDates(), [])
+  const selectedDate = value ? new Date(value + 'T12:00:00') : undefined
+
+  const handleSelect = (date: Date) => {
+    onChange(format(date, 'yyyy-MM-dd'))
+    setOpen(false)
+  }
+
+  return (
+    <div className="space-y-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border text-left',
+              value
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
+                : 'border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary'
+            )}
+          >
+            <CalendarDays className="w-4 h-4 shrink-0" />
+            <span className="flex-1">{value ? format(new Date(value + 'T12:00:00'), 'EEEE, MMM d, yyyy') : 'No due date'}</span>
+            {value && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onClear(); }}
+                className="text-muted-foreground hover:text-destructive transition-colors p-0.5 rounded hover:bg-accent"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-0" align="start" sideOffset={8}>
+          {/* Quick date options */}
+          <div className="p-2 space-y-0.5">
+            {quickDates.map(opt => (
+              <button
+                key={opt.label}
+                onClick={() => handleSelect(opt.date)}
+                className="w-full flex items-center gap-3 px-2.5 py-2 rounded-md hover:bg-secondary transition-colors text-left"
+              >
+                <opt.icon className={cn('w-4 h-4', opt.color)} />
+                <span className="flex-1 text-sm font-medium">{opt.label}</span>
+                <span className="text-xs text-muted-foreground">{opt.sublabel}</span>
+              </button>
+            ))}
+          </div>
+          <div className="border-t border-border" />
+          {/* Calendar */}
+          <div className="p-1">
+            <CalendarWidget
+              mode="single"
+              selected={selectedDate}
+              onSelect={(d) => d && handleSelect(d)}
+              defaultMonth={selectedDate || new Date()}
+              numberOfMonths={1}
+              weekStartsOn={1}
+            />
+          </div>
+          {/* Clear */}
+          {value && (
+            <>
+              <div className="border-t border-border" />
+              <div className="p-2">
+                <button
+                  onClick={() => { onClear(); setOpen(false) }}
+                  className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                >
+                  <X className="w-3 h-3" /> Clear date
+                </button>
+              </div>
+            </>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
 }
 
 export function TaskDetailSheet({ taskId, onClose }: Props) {
@@ -129,10 +229,10 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
             <div className={cn(
               'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
               task.is_completed
-                ? 'border-[#3DD68C] bg-[#3DD68C]'
+                ? 'border-primary bg-primary'
                 : 'border-border hover:border-muted-foreground'
             )}>
-              {task.is_completed && <span className="text-black text-[10px] font-bold">✓</span>}
+              {task.is_completed && <span className="text-primary-foreground text-[10px] font-bold">✓</span>}
             </div>
           </button>
           <span className="text-xs text-muted-foreground">
@@ -229,48 +329,11 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
             <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <Calendar className="w-3 h-3" /> Due date
             </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={dueDate}
-                onChange={e => handleDueDateChange(e.target.value)}
-                className="bg-secondary/50 border-0 h-8 text-xs flex-1 [color-scheme:dark]"
-              />
-              {dueDate && (
-                <button
-                  onClick={handleClearDueDate}
-                  className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1 rounded hover:bg-accent"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            {/* Quick date buttons */}
-            <div className="flex gap-1.5 flex-wrap">
-              {[
-                { label: 'Today', days: 0 },
-                { label: 'Tomorrow', days: 1 },
-                { label: 'In 3 days', days: 3 },
-                { label: 'Next week', days: 7 },
-              ].map(({ label, days }) => {
-                const date = new Date()
-                date.setDate(date.getDate() + days)
-                const dateStr = format(date, 'yyyy-MM-dd')
-                const isActive = dueDate === dateStr
-                return (
-                  <button
-                    key={label}
-                    onClick={() => handleDueDateChange(dateStr)}
-                    className={cn(
-                      'px-2 py-1 rounded-md text-[10px] font-medium transition-all',
-                      isActive ? 'bg-[#3DD68C]/10 text-[#3DD68C] ring-1 ring-[#3DD68C]/20' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
+            <DueDatePicker
+              value={dueDate}
+              onChange={handleDueDateChange}
+              onClear={handleClearDueDate}
+            />
           </div>
 
           {/* Recurrence */}
@@ -319,7 +382,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
             {subtasks.length > 0 && (
               <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#3DD68C] transition-all duration-300 rounded-full"
+                  className="h-full bg-primary transition-all duration-300 rounded-full"
                   style={{ width: `${(subtasks.filter(s => s.is_completed).length / subtasks.length) * 100}%` }}
                 />
               </div>
@@ -333,9 +396,9 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
                     <button onClick={() => toggleTask(st.id)} className="shrink-0">
                       <div className={cn(
                         'w-4 h-4 rounded-full border-[1.5px] flex items-center justify-center transition-all',
-                        st.is_completed ? 'border-[#3DD68C] bg-[#3DD68C]' : 'border-border hover:border-muted-foreground'
+                        st.is_completed ? 'border-primary bg-primary' : 'border-border hover:border-muted-foreground'
                       )}>
-                        {st.is_completed && <span className="text-black text-[8px] font-bold">✓</span>}
+                        {st.is_completed && <span className="text-primary-foreground text-[8px] font-bold">✓</span>}
                       </div>
                     </button>
                     <span className={cn('text-sm flex-1', st.is_completed && 'line-through text-muted-foreground')}>{st.title}</span>
@@ -435,11 +498,12 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
               <div className="flex flex-wrap gap-1.5">
                 {taskProjects.map(project => (
                   <span key={project.id}
-                    className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                    className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: `${project.color_hex}12`, color: project.color_hex }}
                     onClick={() => removeProjectFromTask(taskId, project.id)}
                     title="Click to remove"
                   >
+                    <DynamicIcon name={project.icon_name} className="w-3 h-3" />
                     {project.name}
                     <X className="w-2.5 h-2.5" />
                   </span>
@@ -452,8 +516,9 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
                 {unassignedProjects.map(project => (
                   <button key={project.id}
                     onClick={() => { addProjectToTask(taskId, project.id); setShowProjectPicker(false) }}
-                    className="text-[10px] px-2 py-1 rounded-full font-medium transition-all hover:scale-105"
+                    className="text-[10px] px-2 py-1 rounded-full font-medium flex items-center gap-1.5 transition-all hover:scale-105"
                     style={{ backgroundColor: `${project.color_hex}12`, color: project.color_hex }}>
+                    <DynamicIcon name={project.icon_name} className="w-3 h-3" />
                     + {project.name}
                   </button>
                 ))}

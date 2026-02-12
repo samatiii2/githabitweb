@@ -109,7 +109,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
               <Input
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                className="bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-[#3DD68C]/30 h-10"
+                className="bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-10"
               />
             </div>
 
@@ -191,7 +191,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
                   {groups.map(g => (
                     <button key={g.id} onClick={() => setGroupId(g.id)}
                       className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                        groupId === g.id ? 'text-white' : 'bg-secondary/50 text-muted-foreground'
+                        groupId === g.id ? 'text-[var(--icon-on-color)]' : 'bg-secondary/50 text-muted-foreground'
                       )} style={groupId === g.id ? { backgroundColor: g.color_hex } : undefined}>
                       {g.name}
                     </button>
@@ -223,7 +223,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
               <div className="flex flex-wrap gap-2">
                 {COLORS.map(c => (
                   <button key={c} onClick={() => setColorHex(c)}
-                    className={cn('w-8 h-8 rounded-full transition-all', colorHex === c && 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110')}
+                    className={cn('w-8 h-8 rounded-full transition-all', colorHex === c && 'ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110')}
                     style={{ backgroundColor: c }} />
                 ))}
               </div>
@@ -255,7 +255,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-border bg-background">
           <Button onClick={handleSave} disabled={!title.trim() || saving}
-            className="w-full bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 font-semibold h-10">
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
             {saving ? 'Saving...' : 'Save changes'}
           </Button>
         </div>

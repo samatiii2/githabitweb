@@ -34,14 +34,14 @@ export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedTo
         </div>
 
         <Link href={`/app/habits/${habit.id}`} className="flex-1 min-w-0">
-          <p className="font-semibold text-[15px] truncate group-hover:text-[#3DD68C] transition-colors">{habit.title}</p>
+          <p className="font-semibold text-[15px] truncate group-hover:text-primary transition-colors">{habit.title}</p>
           <div className="flex items-center gap-3 mt-0.5">
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Flame className="w-3 h-3 text-orange-400" />
               {streak}d streak
             </span>
             <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <CheckCircle className="w-3 h-3 text-[#3DD68C]" />
+              <CheckCircle className="w-3 h-3 text-primary" />
               {total} total
             </span>
           </div>

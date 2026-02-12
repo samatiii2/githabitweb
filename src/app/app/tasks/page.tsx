@@ -17,8 +17,17 @@ import {
   Circle, Flag, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import type { Task } from '@/lib/types/database'
+import { DynamicIcon } from '@/components/dynamic-icon'
 import { cn } from '@/lib/utils'
 import { PRIORITY_LABELS } from '@/lib/constants'
+
+const PROJECT_ICONS = [
+  'folder', 'briefcase', 'home', 'heart', 'star', 'book', 'code', 'globe',
+  'music', 'camera', 'gamepad-2', 'shopping-cart', 'users', 'graduation-cap',
+  'plane', 'car', 'dumbbell', 'utensils', 'palette', 'zap', 'rocket',
+  'building', 'landmark', 'wallet', 'gift', 'phone', 'tv', 'monitor',
+  'lightbulb', 'target', 'flag', 'megaphone', 'hammer', 'wrench',
+]
 import { getTasksForDate, recurrenceLabel } from '@/lib/utils/recurrence'
 import { format, parseISO, isToday as _isToday, isTomorrow as _isTomorrow, startOfDay, addDays, addMonths, subMonths, differenceInCalendarDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns'
 
@@ -104,6 +113,7 @@ export default function TasksPage() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectColor, setNewProjectColor] = useState('#3DD68C')
+  const [newProjectIcon, setNewProjectIcon] = useState('folder')
 
   const [createLabelOpen, setCreateLabelOpen] = useState(false)
   const [newLabelName, setNewLabelName] = useState('')
@@ -259,8 +269,8 @@ export default function TasksPage() {
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return
-    await createProject({ name: newProjectName.trim(), icon_name: 'folder', color_hex: newProjectColor })
-    setNewProjectName(''); setNewProjectColor('#3DD68C')
+    await createProject({ name: newProjectName.trim(), icon_name: newProjectIcon, color_hex: newProjectColor })
+    setNewProjectName(''); setNewProjectColor('#3DD68C'); setNewProjectIcon('folder')
     setCreateProjectOpen(false)
   }
 
@@ -335,7 +345,7 @@ export default function TasksPage() {
                   onClick={() => setSmartView(view.id)}
                   className={cn(
                     'flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all',
-                    active ? 'bg-[#3DD68C]/8 text-[#3DD68C]' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    active ? 'bg-primary/8 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   )}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
@@ -343,7 +353,7 @@ export default function TasksPage() {
                   {count > 0 && (
                     <span className={cn(
                       'text-[10px] min-w-[20px] text-center px-1.5 py-0.5 rounded-full',
-                      active ? 'bg-[#3DD68C]/20 text-[#3DD68C]' : 'bg-secondary text-muted-foreground'
+                      active ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
                     )}>
                       {count}
                     </span>
@@ -375,7 +385,7 @@ export default function TasksPage() {
                     active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   )}
                 >
-                  <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: p.color_hex }} />
+                  <DynamicIcon name={p.icon_name} className="w-4 h-4 shrink-0" style={{ color: p.color_hex }} />
                   <span className="flex-1 text-left truncate">{p.name}</span>
                   {count > 0 && <span className="text-[10px] text-muted-foreground">{count}</span>}
                 </button>
@@ -435,7 +445,7 @@ export default function TasksPage() {
             {!showInlineForm && (
               <Button
                 onClick={() => setShowInlineForm(true)}
-                className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 gap-1.5 font-semibold text-xs h-8 shadow-lg shadow-[#3DD68C]/10"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 font-semibold text-xs h-8 shadow-lg shadow-primary/10"
               >
                 <Plus className="w-3.5 h-3.5" /> Add task
               </Button>
@@ -452,7 +462,7 @@ export default function TasksPage() {
                   onClick={() => setSmartView(view.id)}
                   className={cn(
                     'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
-                    active ? 'bg-[#3DD68C]/10 text-[#3DD68C] ring-1 ring-[#3DD68C]/20' : 'bg-secondary text-muted-foreground'
+                    active ? 'bg-primary/10 text-primary ring-1 ring-primary/20' : 'bg-secondary text-muted-foreground'
                   )}
                 >
                   {view.label}
@@ -469,7 +479,7 @@ export default function TasksPage() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="pl-8 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-[#3DD68C]/30 h-8 text-xs"
+                className="pl-8 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-8 text-xs"
               />
             </div>
 
@@ -500,7 +510,7 @@ export default function TasksPage() {
               <DropdownMenuTrigger asChild>
                 <button className={cn(
                   'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all',
-                  groupBy !== 'none' ? 'bg-[#3DD68C]/10 text-[#3DD68C]' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  groupBy !== 'none' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 )}>
                   <Group className="w-3.5 h-3.5" /> Group
                 </button>
@@ -519,7 +529,7 @@ export default function TasksPage() {
               <DropdownMenuTrigger asChild>
                 <button className={cn(
                   'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all',
-                  priorityFilter.length > 0 ? 'bg-[#3DD68C]/10 text-[#3DD68C]' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  priorityFilter.length > 0 ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 )}>
                   <Flag className="w-3.5 h-3.5" /> Priority
                   {priorityFilter.length > 0 && <span className="ml-0.5">({priorityFilter.length})</span>}
@@ -535,8 +545,8 @@ export default function TasksPage() {
                     }}
                     className="flex items-center gap-2 w-full px-2 py-1.5 text-xs hover:bg-accent rounded transition-colors"
                   >
-                    <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center', priorityFilter.includes(p) ? 'bg-[#3DD68C] border-[#3DD68C]' : 'border-border')}>
-                      {priorityFilter.includes(p) && <span className="text-[8px] text-black font-bold">✓</span>}
+                    <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center', priorityFilter.includes(p) ? 'bg-primary border-primary' : 'border-border')}>
+                      {priorityFilter.includes(p) && <span className="text-[8px] text-primary-foreground font-bold">✓</span>}
                     </div>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRIORITY_LABELS[p].color }} />
                     {PRIORITY_LABELS[p].label}
@@ -585,9 +595,9 @@ export default function TasksPage() {
           ) : (
             <button
               onClick={() => setShowInlineForm(true)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border hover:border-[#3DD68C]/40 text-muted-foreground hover:text-[#3DD68C] transition-colors group text-sm"
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors group text-sm"
             >
-              <Plus className="w-4 h-4 group-hover:text-[#3DD68C] transition-colors" />
+              <Plus className="w-4 h-4 group-hover:text-primary transition-colors" />
               <span>Add task</span>
             </button>
           )}
@@ -660,7 +670,7 @@ export default function TasksPage() {
                           onClick={() => setSelectedTaskId(task.id)}
                           className={cn(
                             'w-full text-left card-elevated rounded-lg p-3 space-y-2 transition-all hover:scale-[1.01]',
-                            selectedTaskId === task.id && 'ring-1 ring-[#3DD68C]/30'
+                            selectedTaskId === task.id && 'ring-1 ring-primary/30'
                           )}
                         >
                           <p className="text-sm font-medium leading-snug">{task.title}</p>
@@ -734,24 +744,53 @@ export default function TasksPage() {
 
       {/* ═══ Create Project Dialog ═══ */}
       <Dialog open={createProjectOpen} onOpenChange={setCreateProjectOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Create project</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
+            {/* Preview */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${newProjectColor}15` }}>
+                <DynamicIcon name={newProjectIcon} className="w-5 h-5" style={{ color: newProjectColor }} />
+              </div>
+              <span className="font-semibold text-sm">{newProjectName || 'Project name'}</span>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
               <Input placeholder="e.g. Work, Personal..." value={newProjectName} onChange={e => setNewProjectName(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Icon</Label>
+              <div className="grid grid-cols-8 gap-1.5 max-h-[140px] overflow-y-auto p-1">
+                {PROJECT_ICONS.map(icon => (
+                  <button key={icon} onClick={() => setNewProjectIcon(icon)}
+                    className={cn(
+                      'aspect-square rounded-lg flex items-center justify-center transition-all',
+                      newProjectIcon === icon
+                        ? 'ring-2 scale-110'
+                        : 'bg-secondary/40 hover:bg-secondary text-muted-foreground hover:text-foreground'
+                    )}
+                    style={newProjectIcon === icon ? { backgroundColor: `${newProjectColor}15`, color: newProjectColor, boxShadow: `0 0 0 2px ${newProjectColor}60` } : undefined}
+                  >
+                    <DynamicIcon name={icon} className="w-4 h-4" style={newProjectIcon === icon ? { color: newProjectColor } : undefined} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Color</Label>
               <div className="flex flex-wrap gap-2">
                 {COLORS.map(c => (
                   <button key={c} onClick={() => setNewProjectColor(c)}
-                    className={cn('w-7 h-7 rounded-full transition-all', newProjectColor === c && 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110')}
+                    className={cn('w-7 h-7 rounded-full transition-all', newProjectColor === c && 'ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110')}
                     style={{ backgroundColor: c }} />
                 ))}
               </div>
             </div>
-            <Button onClick={handleCreateProject} disabled={!newProjectName.trim()} className="w-full bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 font-semibold h-10">
+
+            <Button onClick={handleCreateProject} disabled={!newProjectName.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
               Create project
             </Button>
           </div>
@@ -772,12 +811,12 @@ export default function TasksPage() {
               <div className="flex flex-wrap gap-2">
                 {COLORS.map(c => (
                   <button key={c} onClick={() => setNewLabelColor(c)}
-                    className={cn('w-7 h-7 rounded-full transition-all', newLabelColor === c && 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110')}
+                    className={cn('w-7 h-7 rounded-full transition-all', newLabelColor === c && 'ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110')}
                     style={{ backgroundColor: c }} />
                 ))}
               </div>
             </div>
-            <Button onClick={handleCreateLabel} disabled={!newLabelName.trim()} className="w-full bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 font-semibold h-10">
+            <Button onClick={handleCreateLabel} disabled={!newLabelName.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
               Create label
             </Button>
           </div>
@@ -835,7 +874,7 @@ function CalendarView({
           <h2 className="text-lg font-bold">{format(month, 'MMMM yyyy')}</h2>
           <button
             onClick={() => { setMonth(new Date()); onSelectDay(todayStr) }}
-            className="text-[10px] text-[#3DD68C] hover:underline font-medium"
+            className="text-[10px] text-primary hover:underline font-medium"
           >
             Today
           </button>
@@ -879,16 +918,16 @@ function CalendarView({
               className={cn(
                 'min-h-[80px] lg:min-h-[100px] rounded-lg p-1.5 text-left transition-all border',
                 isSelected
-                  ? 'border-[#3DD68C]/40 bg-[#3DD68C]/5'
+                  ? 'border-primary/40 bg-primary/5'
                   : isToday
-                    ? 'border-[#3DD68C]/20 bg-card'
+                    ? 'border-primary/20 bg-card'
                     : 'border-transparent hover:bg-card hover:border-border/50',
                 isWeekend && !isSelected && !isToday && 'bg-secondary/20'
               )}
             >
               <span className={cn(
                 'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold',
-                isToday && 'bg-[#3DD68C] text-black',
+                isToday && 'bg-primary text-primary-foreground',
                 !isToday && 'text-muted-foreground'
               )}>
                 {day.getDate()}
@@ -934,7 +973,7 @@ function CalendarView({
                   onClick={() => onSelectTask(task.id)}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors',
-                    selectedTaskId === task.id && 'bg-[#3DD68C]/5'
+                    selectedTaskId === task.id && 'bg-primary/5'
                   )}
                 >
                   <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: PRIORITY_LABELS[task.priority].color }} />
@@ -987,7 +1026,7 @@ function TaskRow({
     <div
       className={cn(
         'flex items-start gap-3 px-4 py-3 hover:bg-accent/30 transition-colors group cursor-pointer',
-        isSelected && 'bg-[#3DD68C]/5 border-l-2 border-l-[#3DD68C]'
+        isSelected && 'bg-primary/5 border-l-2 border-l-primary'
       )}
       onClick={onSelect}
     >
@@ -995,10 +1034,10 @@ function TaskRow({
         <div className={cn(
           'w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-all',
           task.is_completed
-            ? 'border-[#3DD68C] bg-[#3DD68C] shadow-sm shadow-[#3DD68C]/20'
+            ? 'border-primary bg-primary shadow-sm shadow-primary/20'
             : 'border-border hover:border-muted-foreground'
         )}>
-          {task.is_completed && <span className="text-black text-[9px] font-bold">✓</span>}
+          {task.is_completed && <span className="text-primary-foreground text-[9px] font-bold">✓</span>}
         </div>
       </button>
 
@@ -1010,7 +1049,7 @@ function TaskRow({
 
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {task.due_date && (
-            <span className={cn('text-[10px] flex items-center gap-1', isOverdue ? 'text-red-400' : isDueToday(task.due_date) ? 'text-[#3DD68C]' : 'text-muted-foreground')}>
+            <span className={cn('text-[10px] flex items-center gap-1', isOverdue ? 'text-red-400' : isDueToday(task.due_date) ? 'text-primary' : 'text-muted-foreground')}>
               <Clock className="w-3 h-3" />
               {isOverdue && <AlertCircle className="w-2.5 h-2.5" />}
               {isDueToday(task.due_date) ? 'Today' : isDueTomorrow(task.due_date) ? 'Tomorrow' : formatDueDate(task.due_date)}

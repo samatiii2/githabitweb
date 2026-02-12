@@ -153,7 +153,7 @@ export function RecurrencePicker({ recurrence, recurrenceRule, onChange, variant
                 >
                   <span className="text-sm font-medium flex-1">{p.label}</span>
                   {p.desc && <span className="text-[10px] text-muted-foreground">{p.desc}</span>}
-                  {recurrence === p.value && <div className="w-1.5 h-1.5 rounded-full bg-[#3DD68C]" />}
+                  {recurrence === p.value && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
                 </button>
               ))}
             </div>
@@ -218,7 +218,7 @@ export function RecurrencePicker({ recurrence, recurrenceRule, onChange, variant
                       if (!rule.start_date) delete rule.start_date
                       onChange(recurrence, Object.keys(rule).length > 0 ? rule : null)
                     }}
-                    className="h-7 text-[10px] bg-secondary/50 border-0 [color-scheme:dark]"
+                    className="h-7 text-[10px] bg-secondary/50 border-0 "
                   />
                 </div>
                 <div>
@@ -232,7 +232,7 @@ export function RecurrencePicker({ recurrence, recurrenceRule, onChange, variant
                       if (!rule.end_date) delete rule.end_date
                       onChange(recurrence, Object.keys(rule).length > 0 ? rule : null)
                     }}
-                    className="h-7 text-[10px] bg-secondary/50 border-0 [color-scheme:dark]"
+                    className="h-7 text-[10px] bg-secondary/50 border-0 "
                   />
                 </div>
               </div>
@@ -296,7 +296,7 @@ export function RecurrencePicker({ recurrence, recurrenceRule, onChange, variant
                     className={cn(
                       'flex-1 aspect-square rounded-lg text-xs font-semibold transition-all flex items-center justify-center',
                       daysOfWeek.includes(i)
-                        ? 'bg-[#3DD68C] text-black'
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
                     )}
                   >
@@ -316,7 +316,7 @@ export function RecurrencePicker({ recurrence, recurrenceRule, onChange, variant
                     className={cn(
                       'w-full aspect-square rounded-md text-[11px] font-medium transition-all flex items-center justify-center',
                       daysOfMonth.includes(d)
-                        ? 'bg-[#3DD68C] text-black'
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
                     )}
                   >
@@ -334,7 +334,7 @@ export function RecurrencePicker({ recurrence, recurrenceRule, onChange, variant
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
-                  className="h-7 text-[10px] bg-secondary/50 border-0 [color-scheme:dark]"
+                  className="h-7 text-[10px] bg-secondary/50 border-0 "
                 />
               </div>
               <div>
@@ -343,7 +343,7 @@ export function RecurrencePicker({ recurrence, recurrenceRule, onChange, variant
                   type="date"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
-                  className="h-7 text-[10px] bg-secondary/50 border-0 [color-scheme:dark]"
+                  className="h-7 text-[10px] bg-secondary/50 border-0 "
                 />
               </div>
             </div>
@@ -352,7 +352,7 @@ export function RecurrencePicker({ recurrence, recurrenceRule, onChange, variant
             <Button
               onClick={applyCustom}
               disabled={(customMode === 'dow' && daysOfWeek.length === 0) || (customMode === 'dom' && daysOfMonth.length === 0)}
-              className="w-full bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 font-semibold text-xs h-8"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs h-8"
             >
               Apply
             </Button>

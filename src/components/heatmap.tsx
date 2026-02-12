@@ -67,8 +67,8 @@ export function Heatmap({
     if (!day.dateStr) return 'transparent'
     if (day.status === 'completed') return colorHex
     if (day.status === 'skipped') return '#f59e0b'
-    if (day.status === 'future') return 'rgba(255,255,255,0.03)'
-    return 'rgba(255,255,255,0.04)'
+    if (day.status === 'future') return 'var(--heatmap-future)'
+    return 'var(--heatmap-empty)'
   }
 
   const labelOffset = showDayLabels ? 28 : 0
@@ -135,7 +135,7 @@ export function Heatmap({
                       height={cellSize}
                       rx={rx}
                       fill={getCellColor(day)}
-                      stroke={isToday ? 'rgba(255,255,255,0.4)' : 'none'}
+                      stroke={isToday ? 'var(--heatmap-today-stroke)' : 'none'}
                       strokeWidth={isToday ? 1.5 : 0}
                       className="cursor-pointer transition-all duration-100 hover:brightness-125"
                     />
@@ -189,10 +189,10 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle }: MonthlyHeatmapPr
 
   const getCellColor = (dateStr: string, date: Date) => {
     const status = entryMap.get(dateStr)
-    if (date > today) return 'rgba(255,255,255,0.03)'
+    if (date > today) return 'var(--heatmap-future)'
     if (status === 'completed') return colorHex
     if (status === 'skipped') return '#f59e0b'
-    return 'rgba(255,255,255,0.05)'
+    return 'var(--heatmap-empty)'
   }
 
   return (
@@ -250,13 +250,13 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle }: MonthlyHeatmapPr
                 'h-[14px] rounded-[3px] flex items-center justify-center transition-all',
                 !isFuture && 'hover:brightness-125 cursor-pointer',
                 isFuture && 'opacity-30 cursor-default',
-                isToday && 'ring-1 ring-white/40'
+                isToday && 'ring-1 ring-foreground/40'
               )}
               style={{ backgroundColor: getCellColor(dateStr, day) }}
             >
               <span className={cn(
                 'text-[7px] font-medium leading-none',
-                completed ? 'text-white' : skipped ? 'text-white' : isFuture ? 'text-white/15' : 'text-white/30'
+                completed ? 'text-[var(--icon-on-color)]' : skipped ? 'text-[var(--icon-on-color)]' : isFuture ? 'text-[var(--heatmap-text-faint)]' : 'text-[var(--heatmap-text-dim)]'
               )}>
                 {day.getDate()}
               </span>
@@ -317,8 +317,8 @@ export function MiniHeatmap({ entries, colorHex }: { entries: HabitEntry[]; colo
             : day.status === 'skipped'
               ? '#f59e0b'
               : day.status === 'future'
-                ? 'rgba(255,255,255,0.02)'
-                : 'rgba(255,255,255,0.04)'
+                ? 'var(--heatmap-future)'
+                : 'var(--heatmap-empty)'
           return (
             <rect
               key={day.dateStr}
@@ -326,7 +326,7 @@ export function MiniHeatmap({ entries, colorHex }: { entries: HabitEntry[]; colo
               width={cellSize} height={cellSize}
               rx={2}
               fill={fill}
-              stroke={isToday ? 'rgba(255,255,255,0.3)' : 'none'}
+              stroke={isToday ? 'var(--heatmap-today-stroke)' : 'none'}
               strokeWidth={isToday ? 0.5 : 0}
             />
           )
@@ -389,8 +389,8 @@ export function MiniMonthCalendar({ entries, colorHex, month, onToggle }: {
           : status === 'skipped'
             ? '#f59e0b'
             : isFuture
-              ? 'rgba(255,255,255,0.02)'
-              : 'rgba(255,255,255,0.04)'
+              ? 'var(--heatmap-future)'
+              : 'var(--heatmap-empty)'
 
         return (
           <rect
@@ -399,7 +399,7 @@ export function MiniMonthCalendar({ entries, colorHex, month, onToggle }: {
             width={cellSize} height={cellSize}
             rx={2}
             fill={fill}
-            stroke={isToday ? 'rgba(255,255,255,0.3)' : 'none'}
+            stroke={isToday ? 'var(--heatmap-today-stroke)' : 'none'}
             strokeWidth={isToday ? 0.5 : 0}
             onClick={() => onToggle?.(dateStr)}
             className={!isFuture ? 'cursor-pointer' : ''}

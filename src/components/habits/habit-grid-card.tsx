@@ -32,7 +32,7 @@ export function HabitGridCard({ habit, entries, isCompletedToday, isSkippedToday
             <DynamicIcon name={habit.icon_name} className="w-4 h-4" style={{ color: habit.color_hex }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate group-hover:text-[#3DD68C] transition-colors">{habit.title}</p>
+            <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{habit.title}</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <Flame className="w-3 h-3 text-orange-400" />
               <span className="text-[11px] text-muted-foreground">{streak}d streak</span>

@@ -58,7 +58,7 @@ export default function ChallengesPage() {
           className={cn(
             'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
             !selectedCategory
-              ? 'bg-[#3DD68C]/10 text-[#3DD68C] ring-1 ring-[#3DD68C]/20'
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
               : 'bg-secondary text-muted-foreground hover:text-foreground'
           )}
         >
@@ -71,7 +71,7 @@ export default function ChallengesPage() {
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
               selectedCategory === cat
-                ? 'bg-[#3DD68C]/10 text-[#3DD68C] ring-1 ring-[#3DD68C]/20'
+                ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
                 : 'bg-secondary text-muted-foreground hover:text-foreground'
             )}
           >
@@ -122,7 +122,7 @@ export default function ChallengesPage() {
 
               {/* Action */}
               {started ? (
-                <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-[#3DD68C]/8 text-[#3DD68C] text-sm font-medium">
+                <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-primary/8 text-primary text-sm font-medium">
                   <Check className="w-4 h-4" /> Started
                 </div>
               ) : (
@@ -130,7 +130,7 @@ export default function ChallengesPage() {
                   size="sm"
                   onClick={() => setConfirmChallenge(challenge)}
                   className="w-full text-xs font-semibold h-9"
-                  style={{ backgroundColor: challenge.colorHex, color: '#000' }}
+                  style={{ backgroundColor: challenge.colorHex, color: 'var(--icon-on-color)' }}
                 >
                   <Trophy className="w-3.5 h-3.5 mr-1.5" /> Start challenge
                 </Button>
@@ -155,7 +155,7 @@ export default function ChallengesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => confirmChallenge && handleStart(confirmChallenge)}
-              className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90">
+              className="bg-primary text-primary-foreground hover:bg-primary/90">
               Start
             </AlertDialogAction>
           </AlertDialogFooter>
