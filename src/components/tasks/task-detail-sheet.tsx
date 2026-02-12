@@ -16,7 +16,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import type { Task } from '@/lib/types/database'
+import type { Task, RecurrenceRule, RecurrenceType } from '@/lib/types/database'
+import { RecurrencePicker } from '@/components/tasks/recurrence-picker'
 
 interface Props {
   taskId: string
@@ -53,7 +54,8 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState(4)
   const [status, setStatus] = useState<'todo' | 'doing' | 'done'>('todo')
-  const [recurrence, setRecurrence] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none')
+  const [recurrence, setRecurrence] = useState<RecurrenceType>('none')
+  const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(null)
   const [newSubtask, setNewSubtask] = useState('')
   const [showLabelPicker, setShowLabelPicker] = useState(false)
   const [showProjectPicker, setShowProjectPicker] = useState(false)
@@ -68,6 +70,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
       setPriority(task.priority)
       setStatus(task.status)
       setRecurrence(task.recurrence)
+      setRecurrenceRule(task.recurrence_rule as RecurrenceRule | null)
       setShowLabelPicker(false)
       setShowProjectPicker(false)
     }
@@ -275,22 +278,17 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
             <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <RefreshCw className="w-3 h-3" /> Recurrence
             </Label>
-            <div className="flex gap-1.5">
-              {(['none', 'daily', 'weekly', 'monthly'] as const).map(r => (
-                <button
-                  key={r}
-                  onClick={() => { setRecurrence(r); saveField('recurrence', r) }}
-                  className={cn(
-                    'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all capitalize',
-                    recurrence === r
-                      ? 'bg-[#3DD68C]/10 text-[#3DD68C] ring-1 ring-[#3DD68C]/20'
-                      : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+            <RecurrencePicker
+              recurrence={recurrence}
+              recurrenceRule={recurrenceRule}
+              onChange={(r, rule) => {
+                setRecurrence(r)
+                setRecurrenceRule(rule)
+                saveField('recurrence', r)
+                saveField('recurrence_rule', rule)
+              }}
+              variant="full"
+            />
           </div>
 
           {/* Notes */}

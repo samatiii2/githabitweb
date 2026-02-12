@@ -1,5 +1,15 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
+export interface RecurrenceRule {
+  interval?: number          // every X days/weeks/months
+  days_of_week?: number[]    // 0=Sun, 1=Mon, ..., 6=Sat
+  days_of_month?: number[]   // e.g. [1, 15, 31]
+  start_date?: string        // "YYYY-MM-DD"
+  end_date?: string          // "YYYY-MM-DD"
+}
+
+export type RecurrenceType = 'none' | 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'monthly' | 'yearly' | 'custom'
+
 export interface Database {
   public: {
     Tables: {
@@ -79,7 +89,8 @@ export interface Database {
           completed_at: string | null
           note: string | null
           voice_note_url: string | null
-          recurrence: 'none' | 'daily' | 'weekly' | 'monthly'
+          recurrence: 'none' | 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'monthly' | 'yearly' | 'custom'
+          recurrence_rule: RecurrenceRule | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['tasks']['Row'], 'id' | 'created_at' | 'user_id'> & {

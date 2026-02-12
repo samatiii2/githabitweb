@@ -3,25 +3,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTasksStore, type SmartView, type SortBy, type GroupBy } from '@/lib/store/tasks-store'
 import { TaskDetailSheet } from '@/components/tasks/task-detail-sheet'
+import { TaskInlineForm } from '@/components/tasks/task-inline-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { COLORS } from '@/lib/constants'
 import {
   Plus, Search, Trash2, Clock, Columns3, List, Inbox, CalendarDays,
   CalendarRange, ListChecks, CheckCircle2, FolderOpen, Tag, ArrowUpDown,
-  Group, AlertCircle, ArrowRightCircle,
-  Circle, Flag
+  Group, AlertCircle, ArrowRightCircle, Calendar as CalendarIcon,
+  Circle, Flag, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import type { Task } from '@/lib/types/database'
 import { cn } from '@/lib/utils'
 import { PRIORITY_LABELS } from '@/lib/constants'
-import { format, parseISO, isToday as _isToday, isTomorrow as _isTomorrow, startOfDay, addDays, differenceInCalendarDays } from 'date-fns'
+import { getTasksForDate, recurrenceLabel } from '@/lib/utils/recurrence'
+import { format, parseISO, isToday as _isToday, isTomorrow as _isTomorrow, startOfDay, addDays, addMonths, subMonths, differenceInCalendarDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns'
 
 // ─── Date helpers that handle both "YYYY-MM-DD" and ISO strings ──────
 function parseDueDate(d: string): Date {
@@ -97,13 +96,9 @@ export default function TasksPage() {
     createProject, createLabel,
   } = store
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [newNote, setNewNote] = useState('')
-  const [newPriority, setNewPriority] = useState(4)
-  const [newDueDate, setNewDueDate] = useState('')
-  const [newRecurrence, setNewRecurrence] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none')
-  const [quickAddValue, setQuickAddValue] = useState('')
+  const [showInlineForm, setShowInlineForm] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(new Date())
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null)
 
   // Create project/label dialogs
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
@@ -238,28 +233,28 @@ export default function TasksPage() {
     { title: 'Done', status: 'done' as const, tasks: sortedTasks.filter(t => t.status === 'done'), color: '#3DD68C', icon: CheckCircle2 },
   ], [sortedTasks])
 
-  // ─── Quick add ──────────────────────────────────────────
-  const handleQuickAdd = async () => {
-    if (!quickAddValue.trim()) return
-    const todayStr = format(new Date(), 'yyyy-MM-dd')
-    await createTask({
-      title: quickAddValue.trim(),
-      due_date: smartView === 'today' ? todayStr : null,
+  // ─── Inline form submit ─────────────────────────────────
+  const handleInlineCreate = async (data: {
+    title: string
+    note: string | null
+    due_date: string | null
+    priority: number
+    recurrence: string
+    recurrence_rule?: any
+    projectId?: string | null
+  }) => {
+    const task = await createTask({
+      title: data.title,
+      note: data.note,
+      due_date: data.due_date,
+      priority: data.priority,
+      recurrence: data.recurrence as any,
+      recurrence_rule: data.recurrence_rule ?? null,
     })
-    setQuickAddValue('')
-  }
-
-  const handleCreate = async () => {
-    if (!newTitle.trim()) return
-    await createTask({
-      title: newTitle.trim(),
-      note: newNote || null,
-      priority: newPriority,
-      due_date: newDueDate || null,
-      recurrence: newRecurrence,
-    })
-    setNewTitle(''); setNewNote(''); setNewPriority(4); setNewDueDate(''); setNewRecurrence('none')
-    setCreateOpen(false)
+    // Link to project if selected
+    if (task && data.projectId) {
+      await store.addProjectToTask(task.id, data.projectId)
+    }
   }
 
   const handleCreateProject = async () => {
@@ -437,12 +432,14 @@ export default function TasksPage() {
               <h1 className="text-xl lg:text-2xl font-bold tracking-tight">{currentViewLabel}</h1>
               <p className="text-xs text-muted-foreground mt-0.5">{currentViewDesc}</p>
             </div>
-            <Button
-              onClick={() => setCreateOpen(true)}
-              className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 gap-1.5 font-semibold text-xs h-8 shadow-lg shadow-[#3DD68C]/10"
-            >
-              <Plus className="w-3.5 h-3.5" /> New task
-            </Button>
+            {!showInlineForm && (
+              <Button
+                onClick={() => setShowInlineForm(true)}
+                className="bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 gap-1.5 font-semibold text-xs h-8 shadow-lg shadow-[#3DD68C]/10"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add task
+              </Button>
+            )}
           </div>
 
           {/* Mobile smart view tabs */}
@@ -561,6 +558,7 @@ export default function TasksPage() {
               {([
                 { m: 'list' as const, i: List },
                 { m: 'board' as const, i: Columns3 },
+                { m: 'calendar' as const, i: CalendarIcon },
               ]).map(({ m, i: Icon }) => (
                 <button
                   key={m}
@@ -576,19 +574,23 @@ export default function TasksPage() {
             </div>
           </div>
 
-          {/* Quick add bar */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Plus className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                value={quickAddValue}
-                onChange={e => setQuickAddValue(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
-                placeholder={smartView === 'today' ? 'Quick add task for today... press Enter' : 'Quick add task... press Enter'}
-                className="pl-8 bg-secondary/30 border border-dashed border-border focus-visible:border-solid focus-visible:ring-1 focus-visible:ring-[#3DD68C]/30 h-9 text-sm"
-              />
-            </div>
-          </div>
+          {/* Inline task creation form — Todoist-style */}
+          {showInlineForm ? (
+            <TaskInlineForm
+              projects={projects}
+              defaultDueDate={smartView === 'today' ? format(new Date(), 'yyyy-MM-dd') : null}
+              onSubmit={handleInlineCreate}
+              onCancel={() => setShowInlineForm(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowInlineForm(true)}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border hover:border-[#3DD68C]/40 text-muted-foreground hover:text-[#3DD68C] transition-colors group text-sm"
+            >
+              <Plus className="w-4 h-4 group-hover:text-[#3DD68C] transition-colors" />
+              <span>Add task</span>
+            </button>
+          )}
         </div>
 
         {/* ─── List view ─── */}
@@ -699,6 +701,20 @@ export default function TasksPage() {
             </div>
           </div>
         )}
+
+        {/* ─── Calendar view ─── */}
+        {viewMode === 'calendar' && (
+          <CalendarView
+            tasks={filteredTasks}
+            month={calendarMonth}
+            setMonth={setCalendarMonth}
+            selectedDay={selectedCalendarDay}
+            onSelectDay={setSelectedCalendarDay}
+            onSelectTask={setSelectedTaskId}
+            selectedTaskId={selectedTaskId}
+            getLabelsForTask={getLabelsForTask}
+          />
+        )}
       </div>
 
       {/* ═══ RIGHT: Task Detail Panel ═══ */}
@@ -715,63 +731,6 @@ export default function TasksPage() {
         </>
       )}
 
-      {/* ═══ Create Task Sheet ═══ */}
-      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-        <SheetContent className="w-full sm:max-w-md p-0 bg-background border-l border-border">
-          <SheetHeader className="px-6 py-4 border-b border-border">
-            <SheetTitle className="flex items-center gap-2 text-base">
-              <Plus className="w-4 h-4 text-[#3DD68C]" /> New task
-            </SheetTitle>
-          </SheetHeader>
-          <div className="px-6 py-5 space-y-5">
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Title</Label>
-              <Input placeholder="What needs to be done?" value={newTitle} onChange={e => setNewTitle(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Note</Label>
-              <Textarea placeholder="Add details..." value={newNote} onChange={e => setNewNote(e.target.value)} rows={3} className="bg-secondary/50 border-0 resize-none" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Due date</Label>
-                <Input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="bg-secondary/50 border-0 h-9 [color-scheme:dark]" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priority</Label>
-                <Select value={String(newPriority)} onValueChange={v => setNewPriority(Number(v))}>
-                  <SelectTrigger className="bg-secondary/50 border-0 h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[1,2,3,4].map(p => (
-                      <SelectItem key={p} value={String(p)}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRIORITY_LABELS[p].color }} />
-                          {PRIORITY_LABELS[p].label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recurrence</Label>
-              <Select value={newRecurrence} onValueChange={(v) => setNewRecurrence(v as typeof newRecurrence)}>
-                <SelectTrigger className="bg-secondary/50 border-0 h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={handleCreate} disabled={!newTitle.trim()} className="w-full bg-[#3DD68C] text-black hover:bg-[#3DD68C]/90 font-semibold h-10 mt-2">
-              Create task
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
 
       {/* ═══ Create Project Dialog ═══ */}
       <Dialog open={createProjectOpen} onOpenChange={setCreateProjectOpen}>
@@ -828,6 +787,187 @@ export default function TasksPage() {
   )
 }
 
+// ─── Calendar View Component ──────────────────────────────
+const WEEKDAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+function CalendarView({
+  tasks, month, setMonth, selectedDay, onSelectDay, onSelectTask, selectedTaskId, getLabelsForTask,
+}: {
+  tasks: Task[]
+  month: Date
+  setMonth: (d: Date) => void
+  selectedDay: string | null
+  onSelectDay: (d: string | null) => void
+  onSelectTask: (id: string) => void
+  selectedTaskId: string | null
+  getLabelsForTask: (id: string) => { id: string; name: string; color_hex: string }[]
+}) {
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const mStart = startOfMonth(month)
+  const mEnd = endOfMonth(month)
+  const days = eachDayOfInterval({ start: mStart, end: mEnd })
+  const startPadding = (getDay(mStart) + 6) % 7 // Mon = 0
+
+  // Compute tasks per day for the whole month
+  const tasksByDay = useMemo(() => {
+    const map = new Map<string, Task[]>()
+    for (const day of days) {
+      const dateStr = format(day, 'yyyy-MM-dd')
+      const dayTasks = getTasksForDate(tasks, day)
+      if (dayTasks.length > 0) map.set(dateStr, dayTasks)
+    }
+    return map
+  }, [tasks, days])
+
+  const selectedDayTasks = selectedDay ? (tasksByDay.get(selectedDay) || []) : []
+
+  return (
+    <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-6">
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => setMonth(subMonths(month, 1))}
+          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="text-center">
+          <h2 className="text-lg font-bold">{format(month, 'MMMM yyyy')}</h2>
+          <button
+            onClick={() => { setMonth(new Date()); onSelectDay(todayStr) }}
+            className="text-[10px] text-[#3DD68C] hover:underline font-medium"
+          >
+            Today
+          </button>
+        </div>
+        <button
+          onClick={() => setMonth(addMonths(month, 1))}
+          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {WEEKDAY_HEADERS.map(d => (
+          <div key={d} className="text-center text-[10px] font-semibold text-muted-foreground py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {/* Padding */}
+        {Array.from({ length: startPadding }).map((_, i) => (
+          <div key={`pad-${i}`} className="min-h-[80px] lg:min-h-[100px]" />
+        ))}
+
+        {/* Day cells */}
+        {days.map(day => {
+          const dateStr = format(day, 'yyyy-MM-dd')
+          const isToday = dateStr === todayStr
+          const isSelected = dateStr === selectedDay
+          const dayTasks = tasksByDay.get(dateStr) || []
+          const isWeekend = getDay(day) === 0 || getDay(day) === 6
+
+          return (
+            <button
+              key={dateStr}
+              onClick={() => onSelectDay(isSelected ? null : dateStr)}
+              className={cn(
+                'min-h-[80px] lg:min-h-[100px] rounded-lg p-1.5 text-left transition-all border',
+                isSelected
+                  ? 'border-[#3DD68C]/40 bg-[#3DD68C]/5'
+                  : isToday
+                    ? 'border-[#3DD68C]/20 bg-card'
+                    : 'border-transparent hover:bg-card hover:border-border/50',
+                isWeekend && !isSelected && !isToday && 'bg-secondary/20'
+              )}
+            >
+              <span className={cn(
+                'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold',
+                isToday && 'bg-[#3DD68C] text-black',
+                !isToday && 'text-muted-foreground'
+              )}>
+                {day.getDate()}
+              </span>
+
+              {/* Task indicators */}
+              <div className="mt-0.5 space-y-0.5">
+                {dayTasks.slice(0, 3).map(task => (
+                  <div
+                    key={task.id}
+                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium truncate"
+                    style={{ backgroundColor: `${PRIORITY_LABELS[task.priority].color}15`, color: PRIORITY_LABELS[task.priority].color }}
+                  >
+                    <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: PRIORITY_LABELS[task.priority].color }} />
+                    <span className="truncate">{task.title}</span>
+                  </div>
+                ))}
+                {dayTasks.length > 3 && (
+                  <span className="text-[9px] text-muted-foreground px-1">+{dayTasks.length - 3} more</span>
+                )}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Selected day detail panel */}
+      {selectedDay && (
+        <div className="mt-4 card-elevated rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="text-sm font-semibold">
+              {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d')}
+            </h3>
+            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+              {selectedDayTasks.length} task{selectedDayTasks.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          {selectedDayTasks.length > 0 ? (
+            <div className="divide-y divide-border">
+              {selectedDayTasks.map(task => (
+                <button
+                  key={task.id}
+                  onClick={() => onSelectTask(task.id)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors',
+                    selectedTaskId === task.id && 'bg-[#3DD68C]/5'
+                  )}
+                >
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: PRIORITY_LABELS[task.priority].color }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{task.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {task.recurrence !== 'none' && (
+                        <span className="text-[9px] text-purple-400 bg-purple-400/10 px-1.5 py-0.5 rounded">
+                          🔄 {recurrenceLabel(task.recurrence, task.recurrence_rule as any)}
+                        </span>
+                      )}
+                      {getLabelsForTask(task.id).map(l => (
+                        <span key={l.id} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${l.color_hex}12`, color: l.color_hex }}>
+                          {l.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <Flag className="w-3 h-3 shrink-0" style={{ color: PRIORITY_LABELS[task.priority].color }} />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+              No tasks for this day
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Task Row Component ───────────────────────────────────
 function TaskRow({
   task, subtaskCount, subtaskDone, labels, isSelected, onToggle, onSelect, onDelete
@@ -877,7 +1017,7 @@ function TaskRow({
             </span>
           )}
           {task.recurrence !== 'none' && (
-            <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">🔄 {task.recurrence}</span>
+            <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">🔄 {recurrenceLabel(task.recurrence, task.recurrence_rule as any)}</span>
           )}
           {subtaskCount > 0 && (
             <span className="text-[10px] text-muted-foreground flex items-center gap-1">

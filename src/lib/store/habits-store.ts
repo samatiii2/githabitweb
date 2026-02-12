@@ -7,11 +7,11 @@ interface HabitsState {
   entries: HabitEntry[]
   groups: HabitGroup[]
   loading: boolean
-  viewMode: 'heatmap' | 'grid' | 'list'
+  viewMode: 'heatmap' | 'month' | 'grid' | 'list'
   selectedGroupId: string | null
   searchQuery: string
 
-  setViewMode: (mode: 'heatmap' | 'grid' | 'list') => void
+  setViewMode: (mode: 'heatmap' | 'month' | 'grid' | 'list') => void
   setSelectedGroupId: (id: string | null) => void
   setSearchQuery: (q: string) => void
 

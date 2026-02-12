@@ -59,7 +59,7 @@ export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedTo
 
       {/* Heatmap */}
       <div className="mt-3">
-        <Heatmap entries={entries} colorHex={habit.color_hex} cellSize={11} gap={2} showMonthLabels showDayLabels={false} />
+        <Heatmap entries={entries} colorHex={habit.color_hex} cellSize={14} gap={2.5} showMonthLabels showDayLabels={false} />
       </div>
     </div>
   )

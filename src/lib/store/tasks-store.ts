@@ -5,7 +5,7 @@ import type { Task, TaskProject, TaskLabel, TaskProjectLink, TaskLabelLink } fro
 export type SmartView = 'inbox' | 'today' | 'upcoming' | 'all' | 'completed'
 export type SortBy = 'priority' | 'due_date' | 'created_at' | 'title'
 export type GroupBy = 'none' | 'status' | 'priority' | 'due_date'
-export type ViewMode = 'list' | 'board'
+export type ViewMode = 'list' | 'board' | 'calendar'
 
 interface TasksState {
   tasks: Task[]
@@ -132,6 +132,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       is_completed: false,
       note: data.note ?? null,
       recurrence: data.recurrence ?? 'none',
+      recurrence_rule: data.recurrence_rule ?? null,
       parent_task_id: data.parent_task_id ?? null,
       voice_note_url: null,
       completed_at: null,
@@ -169,9 +170,26 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     if (isCompleted && task.recurrence !== 'none' && task.due_date) {
       const dueDate = new Date(task.due_date)
       let nextDate: Date
-      if (task.recurrence === 'daily') nextDate = new Date(dueDate.setDate(dueDate.getDate() + 1))
-      else if (task.recurrence === 'weekly') nextDate = new Date(dueDate.setDate(dueDate.getDate() + 7))
-      else nextDate = new Date(dueDate.setMonth(dueDate.getMonth() + 1))
+      const interval = (task.recurrence_rule as any)?.interval || 1
+      switch (task.recurrence) {
+        case 'daily':
+        case 'weekdays':
+        case 'weekends':
+        case 'custom':
+          nextDate = new Date(dueDate.setDate(dueDate.getDate() + interval))
+          break
+        case 'weekly':
+          nextDate = new Date(dueDate.setDate(dueDate.getDate() + 7 * interval))
+          break
+        case 'monthly':
+          nextDate = new Date(dueDate.setMonth(dueDate.getMonth() + interval))
+          break
+        case 'yearly':
+          nextDate = new Date(dueDate.setFullYear(dueDate.getFullYear() + interval))
+          break
+        default:
+          nextDate = new Date(dueDate.setDate(dueDate.getDate() + 1))
+      }
 
       await get().createTask({
         title: task.title,
@@ -179,6 +197,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         color_hex: task.color_hex,
         priority: task.priority,
         recurrence: task.recurrence,
+        recurrence_rule: task.recurrence_rule,
         due_date: nextDate.toISOString(),
         note: task.note,
       })

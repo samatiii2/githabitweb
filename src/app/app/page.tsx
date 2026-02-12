@@ -6,10 +6,14 @@ import { HabitHeatmapCard } from '@/components/habits/habit-heatmap-card'
 import { HabitGridCard } from '@/components/habits/habit-grid-card'
 import { HabitListRow } from '@/components/habits/habit-list-row'
 import { CreateHabitDialog } from '@/components/habits/create-habit-dialog'
+import { HabitMonthCard } from '@/components/habits/habit-month-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { Plus, LayoutGrid, List, Grid3X3, Search, Flame, Target, TrendingUp, Sparkles } from 'lucide-react'
+import {
+  Plus, LayoutGrid, List, Grid3X3, CalendarDays, Search, Flame,
+  Target, TrendingUp, Sparkles, ChevronDown, ChevronUp
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { calculateStreak } from '@/lib/utils/stats'
@@ -25,6 +29,7 @@ export default function DashboardPage() {
   } = useHabitsStore()
 
   const [createOpen, setCreateOpen] = useState(false)
+  const [showStats, setShowStats] = useState(false)
 
   useEffect(() => {
     fetchHabits()
@@ -71,11 +76,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="p-6 lg:p-8 space-y-6">
-        {/* Shimmer loading */}
         <div className="shimmer h-8 w-48 rounded-lg" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <div key={i} className="shimmer h-24 rounded-xl" />)}
-        </div>
         <div className="space-y-3">
           {[1,2,3].map(i => <div key={i} className="shimmer h-32 rounded-xl" />)}
         </div>
@@ -91,11 +92,11 @@ export default function DashboardPage() {
   })()
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{greeting}</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{greeting} ✨</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {format(new Date(), 'EEEE, MMMM d, yyyy')}
           </p>
@@ -109,62 +110,79 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats — collapsible, hidden by default */}
       {filteredHabits.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <div className="card-elevated rounded-xl p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Today</span>
-              <Target className="w-4 h-4 text-[#3DD68C]" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold">{completedToday}</span>
-              <span className="text-sm text-muted-foreground">/ {filteredHabits.length}</span>
-            </div>
-            <Progress value={completionPercent} className="h-1.5" />
-          </div>
+        <div>
+          <button
+            onClick={() => setShowStats(!showStats)}
+            className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-1 py-1"
+          >
+            {showStats ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            {showStats ? 'Hide statistics' : 'Show statistics'}
+            {!showStats && (
+              <span className="text-[10px] ml-1 opacity-60">
+                — {completedToday}/{filteredHabits.length} today · {completionPercent}%
+              </span>
+            )}
+          </button>
 
-          <div className="card-elevated rounded-xl p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Completion</span>
-              <TrendingUp className="w-4 h-4 text-blue-400" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold">{completionPercent}</span>
-              <span className="text-sm text-muted-foreground">%</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-secondary">
-              <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${completionPercent}%` }} />
-            </div>
-          </div>
+          {showStats && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mt-2">
+              <div className="card-elevated rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Today</span>
+                  <Target className="w-4 h-4 text-[#3DD68C]" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold">{completedToday}</span>
+                  <span className="text-sm text-muted-foreground">/ {filteredHabits.length}</span>
+                </div>
+                <Progress value={completionPercent} className="h-1.5" />
+              </div>
 
-          <div className="card-elevated rounded-xl p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Best Streak</span>
-              <Flame className="w-4 h-4 text-orange-400" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold">{bestStreak}</span>
-              <span className="text-sm text-muted-foreground">days</span>
-            </div>
-          </div>
+              <div className="card-elevated rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Completion</span>
+                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold">{completionPercent}</span>
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-secondary">
+                  <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${completionPercent}%` }} />
+                </div>
+              </div>
 
-          <div className="card-elevated rounded-xl p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Habits</span>
-              <Sparkles className="w-4 h-4 text-purple-400" />
+              <div className="card-elevated rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Best Streak</span>
+                  <Flame className="w-4 h-4 text-orange-400" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold">{bestStreak}</span>
+                  <span className="text-sm text-muted-foreground">days</span>
+                </div>
+              </div>
+
+              <div className="card-elevated rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Habits</span>
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold">{filteredHabits.length}</span>
+                  <span className="text-sm text-muted-foreground">active</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold">{filteredHabits.length}</span>
-              <span className="text-sm text-muted-foreground">active</span>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* Search + View mode + Group filter */}
-      <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
-        <div className="relative flex-1 w-full md:max-w-sm">
+      <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center">
+        <div className="relative flex-1 w-full lg:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search habits..."
@@ -212,7 +230,8 @@ export default function DashboardPage() {
           {/* View mode - segmented control */}
           <div className="flex items-center bg-secondary/80 rounded-lg p-0.5 border border-border/50">
             {([
-              { mode: 'heatmap' as const, icon: Grid3X3, label: 'Heatmap' },
+              { mode: 'heatmap' as const, icon: Grid3X3, label: 'Year' },
+              { mode: 'month' as const, icon: CalendarDays, label: 'Month' },
               { mode: 'grid' as const, icon: LayoutGrid, label: 'Grid' },
               { mode: 'list' as const, icon: List, label: 'List' },
             ]).map(({ mode, icon: Icon, label }) => (
@@ -221,13 +240,14 @@ export default function DashboardPage() {
                 onClick={() => setViewMode(mode)}
                 title={label}
                 className={cn(
-                  'p-1.5 rounded-md transition-all',
+                  'flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-all text-xs font-medium',
                   viewMode === mode
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </div>
@@ -262,7 +282,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Heatmap view */}
+      {/* Year Heatmap view */}
       {viewMode === 'heatmap' && filteredHabits.length > 0 && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {filteredHabits.map(habit => (
@@ -273,6 +293,23 @@ export default function DashboardPage() {
               isCompletedToday={isCompletedToday(habit.id)}
               isSkippedToday={isSkippedToday(habit.id)}
               onToggle={() => toggleEntry(habit.id, todayDate)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Month view — compact cards, more per row */}
+      {viewMode === 'month' && filteredHabits.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {filteredHabits.map(habit => (
+            <HabitMonthCard
+              key={habit.id}
+              habit={habit}
+              entries={entriesForHabit(habit.id)}
+              isCompletedToday={isCompletedToday(habit.id)}
+              isSkippedToday={isSkippedToday(habit.id)}
+              onToggle={() => toggleEntry(habit.id, todayDate)}
+              onToggleDate={(dateStr) => toggleEntry(habit.id, dateStr)}
             />
           ))}
         </div>

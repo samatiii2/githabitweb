@@ -74,7 +74,8 @@ create table public.tasks (
   completed_at timestamptz,
   note text,
   voice_note_url text,
-  recurrence text not null default 'none' check (recurrence in ('none', 'daily', 'weekly', 'monthly')),
+  recurrence text not null default 'none' check (recurrence in ('none', 'daily', 'weekdays', 'weekends', 'weekly', 'monthly', 'yearly', 'custom')),
+  recurrence_rule jsonb,
   created_at timestamptz not null default now()
 );
 alter table public.tasks enable row level security;
