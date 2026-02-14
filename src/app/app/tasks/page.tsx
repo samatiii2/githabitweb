@@ -14,7 +14,7 @@ import {
   Plus, Search, Trash2, Clock, Columns3, List, Inbox, CalendarDays,
   CalendarRange, ListChecks, CheckCircle2, FolderOpen, Tag, ArrowUpDown,
   Group, AlertCircle, ArrowRightCircle, Calendar as CalendarIcon,
-  Circle, Flag, ChevronLeft, ChevronRight
+  Circle, Flag, ChevronLeft, ChevronRight, Pencil
 } from 'lucide-react'
 import type { Task } from '@/lib/types/database'
 import { DynamicIcon } from '@/components/dynamic-icon'
@@ -102,7 +102,7 @@ export default function TasksPage() {
     setSmartView, setViewMode, setSearchQuery, setSortBy, setSortDirection, setGroupBy,
     setPriorityFilter, setSelectedProjectId, setSelectedLabelId, setSelectedTaskId,
     fetchAll, createTask, toggleTask, deleteTask, getSubtasks, getLabelsForTask,
-    createProject, createLabel,
+    createProject, updateProject, createLabel,
   } = store
 
   const [showInlineForm, setShowInlineForm] = useState(false)
@@ -114,6 +114,13 @@ export default function TasksPage() {
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectColor, setNewProjectColor] = useState('#3DD68C')
   const [newProjectIcon, setNewProjectIcon] = useState('folder')
+
+  // Edit project dialog
+  const [editProjectOpen, setEditProjectOpen] = useState(false)
+  const [editProjectId, setEditProjectId] = useState<string | null>(null)
+  const [editProjectName, setEditProjectName] = useState('')
+  const [editProjectColor, setEditProjectColor] = useState('#3DD68C')
+  const [editProjectIcon, setEditProjectIcon] = useState('folder')
 
   const [createLabelOpen, setCreateLabelOpen] = useState(false)
   const [newLabelName, setNewLabelName] = useState('')
@@ -281,6 +288,21 @@ export default function TasksPage() {
     setCreateLabelOpen(false)
   }
 
+  const openEditProject = (project: { id: string; name: string; icon_name: string; color_hex: string }) => {
+    setEditProjectId(project.id)
+    setEditProjectName(project.name)
+    setEditProjectIcon(project.icon_name)
+    setEditProjectColor(project.color_hex)
+    setEditProjectOpen(true)
+  }
+
+  const handleSaveProject = async () => {
+    if (!editProjectId || !editProjectName.trim()) return
+    await updateProject(editProjectId, { name: editProjectName.trim(), icon_name: editProjectIcon, color_hex: editProjectColor })
+    setEditProjectOpen(false)
+    setEditProjectId(null)
+  }
+
   // ─── Stats ──────────────────────────────────────────────
   const todayCount = parentTasks.filter(t => !t.is_completed && t.due_date && (isDueToday(t.due_date) || isDueOverdue(t.due_date))).length
   const upcomingCount = parentTasks.filter(t => !t.is_completed && t.due_date && isDueInNextDays(t.due_date, 7)).length
@@ -377,18 +399,25 @@ export default function TasksPage() {
               const count = store.projectLinks.filter(l => l.project_id === p.id).length
               const active = selectedProjectId === p.id
               return (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedProjectId(active ? null : p.id)}
-                  className={cn(
-                    'flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all',
-                    active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                  )}
-                >
-                  <DynamicIcon name={p.icon_name} className="w-4 h-4 shrink-0" style={{ color: p.color_hex }} />
-                  <span className="flex-1 text-left truncate">{p.name}</span>
-                  {count > 0 && <span className="text-[10px] text-muted-foreground">{count}</span>}
-                </button>
+                <div key={p.id} className="group/proj relative flex items-center">
+                  <button
+                    onClick={() => setSelectedProjectId(active ? null : p.id)}
+                    className={cn(
+                      'flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all',
+                      active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    )}
+                  >
+                    <DynamicIcon name={p.icon_name} className="w-4 h-4 shrink-0" style={{ color: p.color_hex }} />
+                    <span className="flex-1 text-left truncate">{p.name}</span>
+                    {count > 0 && <span className="text-[10px] text-muted-foreground group-hover/proj:hidden">{count}</span>}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openEditProject(p) }}
+                    className="absolute right-2 opacity-0 group-hover/proj:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-secondary"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                </div>
               )
             })}
             {projects.length === 0 && (
@@ -487,7 +516,9 @@ export default function TasksPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-all">
-                  <ArrowUpDown className="w-3.5 h-3.5" /> Sort
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                  <span>Sort: <span className="text-foreground font-medium">{SORT_OPTIONS.find(o => o.value === sortBy)?.label}</span></span>
+                  <span className="text-[10px] opacity-60">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-40">
@@ -499,8 +530,8 @@ export default function TasksPage() {
                 </DropdownMenuRadioGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={sortDirection} onValueChange={v => setSortDirection(v as 'asc' | 'desc')}>
-                  <DropdownMenuRadioItem value="asc" className="text-xs">Ascending</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="desc" className="text-xs">Descending</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="asc" className="text-xs">Ascending ↑</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="desc" className="text-xs">Descending ↓</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -512,7 +543,8 @@ export default function TasksPage() {
                   'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all',
                   groupBy !== 'none' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 )}>
-                  <Group className="w-3.5 h-3.5" /> Group
+                  <Group className="w-3.5 h-3.5" />
+                  <span>Group: <span className="font-medium">{groupBy === 'none' ? 'Off' : GROUP_OPTIONS.find(o => o.value === groupBy)?.label}</span></span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-40">
@@ -818,6 +850,61 @@ export default function TasksPage() {
             </div>
             <Button onClick={handleCreateLabel} disabled={!newLabelName.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
               Create label
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ Edit Project Dialog ═══ */}
+      <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Edit project</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            {/* Preview */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${editProjectColor}15` }}>
+                <DynamicIcon name={editProjectIcon} className="w-5 h-5" style={{ color: editProjectColor }} />
+              </div>
+              <span className="font-semibold text-sm">{editProjectName || 'Project name'}</span>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
+              <Input placeholder="e.g. Work, Personal..." value={editProjectName} onChange={e => setEditProjectName(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Icon</Label>
+              <div className="grid grid-cols-8 gap-1.5 max-h-[140px] overflow-y-auto p-1">
+                {PROJECT_ICONS.map(icon => (
+                  <button key={icon} onClick={() => setEditProjectIcon(icon)}
+                    className={cn(
+                      'aspect-square rounded-lg flex items-center justify-center transition-all',
+                      editProjectIcon === icon
+                        ? 'ring-2 scale-110'
+                        : 'bg-secondary/40 hover:bg-secondary text-muted-foreground hover:text-foreground'
+                    )}
+                    style={editProjectIcon === icon ? { backgroundColor: `${editProjectColor}15`, color: editProjectColor, boxShadow: `0 0 0 2px ${editProjectColor}60` } : undefined}
+                  >
+                    <DynamicIcon name={icon} className="w-4 h-4" style={editProjectIcon === icon ? { color: editProjectColor } : undefined} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Color</Label>
+              <div className="flex flex-wrap gap-2">
+                {COLORS.map(c => (
+                  <button key={c} onClick={() => setEditProjectColor(c)}
+                    className={cn('w-7 h-7 rounded-full transition-all', editProjectColor === c && 'ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110')}
+                    style={{ backgroundColor: c }} />
+                ))}
+              </div>
+            </div>
+
+            <Button onClick={handleSaveProject} disabled={!editProjectName.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
+              Save changes
             </Button>
           </div>
         </DialogContent>

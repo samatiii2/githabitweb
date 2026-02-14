@@ -40,7 +40,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
             <Flame className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="text-3xl font-bold tracking-tight">GitHabit</h2>
+          <h2 className="text-3xl font-bold tracking-tight">giHabit</h2>
           <p className="text-muted-foreground max-w-sm">
             Track your habits with a beautiful GitHub-style heatmap. Build consistency, one day at a time.
           </p>
@@ -69,7 +69,7 @@ export default function LoginPage() {
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Flame className="w-4 h-4 text-primary" />
               </div>
-              <span className="font-bold text-sm">GitHabit</span>
+              <span className="font-bold text-sm">giHabit</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
             <p className="text-muted-foreground text-sm mt-1">Sign in to continue tracking your habits</p>

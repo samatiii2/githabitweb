@@ -1,6 +1,6 @@
-# GitHabit Web
+# giHabit Web
 
-A web version of GitHabit — habit tracker with GitHub-style heatmap visualization.
+A web version of giHabit — habit tracker with GitHub-style heatmap visualization.
 
 ## Tech Stack
 

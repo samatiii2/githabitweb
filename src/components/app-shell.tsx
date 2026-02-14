@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Flame className="w-4 h-4 text-primary" />
           </div>
           {!sidebarCollapsed && (
-            <span className="font-bold text-[15px] ml-3 tracking-tight">GitHabit</span>
+            <span className="font-bold text-[15px] ml-3 tracking-tight">giHabit</span>
           )}
           {!sidebarCollapsed && (
             <button
@@ -161,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
             <Flame className="w-3.5 h-3.5 text-primary" />
           </div>
-          <span className="font-semibold text-sm">GitHabit</span>
+          <span className="font-semibold text-sm">giHabit</span>
         </div>
         <div className="flex items-center gap-1">
           <ThemeToggleIcon />

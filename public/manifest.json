@@ -1,6 +1,6 @@
 {
-  "name": "GitHabit",
-  "short_name": "GitHabit",
+  "name": "giHabit",
+  "short_name": "giHabit",
   "description": "Track your habits with a beautiful GitHub-style heatmap",
   "start_url": "/app",
   "display": "standalone",

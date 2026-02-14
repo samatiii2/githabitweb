@@ -13,7 +13,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <Flame className="w-4 h-4 text-primary" />
             </div>
-            <span className="font-bold text-base tracking-tight">GitHabit</span>
+            <span className="font-bold text-base tracking-tight">giHabit</span>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/login">
@@ -204,7 +204,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Flame className="w-3.5 h-3.5 text-primary" />
-            <span className="text-xs">GitHabit &copy; {new Date().getFullYear()}</span>
+            <span className="text-xs">giHabit &copy; {new Date().getFullYear()}</span>
           </div>
           <div className="text-xs text-muted-foreground">
             Built with Next.js + Supabase

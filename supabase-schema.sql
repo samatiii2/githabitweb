@@ -1,5 +1,5 @@
 -- ============================================================
--- GitHabit Web - Supabase Database Schema
+-- giHabit Web - Supabase Database Schema
 -- Run this in the Supabase SQL Editor to set up your database
 -- ============================================================
 

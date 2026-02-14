@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GitHabit - Build Better Habits",
+  title: "giHabit - Build Better Habits",
   description: "Track your habits with a beautiful GitHub-style heatmap. Manage tasks, set challenges, and build consistency. Free, works on any device.",
   manifest: "/manifest.json",
 };

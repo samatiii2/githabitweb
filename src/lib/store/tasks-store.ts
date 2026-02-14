@@ -47,6 +47,7 @@ interface TasksState {
   toggleTask: (id: string) => Promise<void>
 
   createProject: (data: { name: string; icon_name: string; color_hex: string }) => Promise<void>
+  updateProject: (id: string, data: { name?: string; icon_name?: string; color_hex?: string }) => Promise<void>
   deleteProject: (id: string) => Promise<void>
 
   createLabel: (data: { name: string; color_hex: string }) => Promise<void>
@@ -76,7 +77,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   searchQuery: '',
   sortBy: 'created_at',
   sortDirection: 'desc',
-  groupBy: 'none',
+  groupBy: 'due_date',
   priorityFilter: [],
   selectedProjectId: null,
   selectedLabelId: null,
@@ -208,6 +209,12 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     const supabase = createClient()
     const { data: project } = await supabase.from('task_projects').insert({ ...data, sort_order: 0 }).select().single()
     if (project) set(s => ({ projects: [...s.projects, project] }))
+  },
+
+  updateProject: async (id, data) => {
+    const supabase = createClient()
+    await supabase.from('task_projects').update(data).eq('id', id)
+    set(s => ({ projects: s.projects.map(p => p.id === id ? { ...p, ...data } : p) }))
   },
 
   deleteProject: async (id) => {

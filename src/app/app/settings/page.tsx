@@ -50,7 +50,7 @@ export default function SettingsPage() {
             <Palette className="w-5 h-5 text-muted-foreground" />
             <span className="font-semibold">Appearance</span>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">Choose how GitHabit looks to you.</p>
+          <p className="text-sm text-muted-foreground mb-4">Choose how giHabit looks to you.</p>
           {mounted && (
             <div className="grid grid-cols-2 gap-3 max-w-sm">
               {([
@@ -84,7 +84,7 @@ export default function SettingsPage() {
         <div className="p-5">
           <div className="flex items-center gap-3 mb-4">
             <Info className="w-5 h-5 text-muted-foreground" />
-            <span className="font-semibold">About GitHabit</span>
+            <span className="font-semibold">About giHabit</span>
           </div>
           <div className="space-y-3 text-sm text-muted-foreground">
             <div className="flex items-center justify-between">
