@@ -17,6 +17,7 @@ interface HeatmapProps {
   showMonthLabels?: boolean
   showDayLabels?: boolean
   rounded?: boolean
+  onToggle?: (dateStr: string) => void
 }
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -31,6 +32,7 @@ export function Heatmap({
   showMonthLabels = true,
   showDayLabels = false,
   rounded = false,
+  onToggle,
 }: HeatmapProps) {
   const days = useMemo(() => generateYearHeatmapData(entries, year), [entries, year])
   const todayStr = format(new Date(), 'yyyy-MM-dd')
@@ -137,12 +139,17 @@ export function Heatmap({
                       fill={getCellColor(day)}
                       stroke={isToday ? 'var(--heatmap-today-stroke)' : 'none'}
                       strokeWidth={isToday ? 1.5 : 0}
-                      className="cursor-pointer transition-all duration-100 hover:brightness-125"
+                      className={cn(
+                        'transition-all duration-100 hover:brightness-125',
+                        onToggle && day.status !== 'future' ? 'cursor-pointer' : 'cursor-default'
+                      )}
+                      onClick={() => onToggle && day.status !== 'future' && onToggle(day.dateStr)}
                     />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs bg-popover border-border">
                     <p className="font-medium">{format(day.date, 'EEEE, MMM d, yyyy')}</p>
                     <p className="capitalize text-muted-foreground">{day.status}</p>
+                    {onToggle && day.status !== 'future' && <p className="text-primary text-[10px] mt-0.5">Click to toggle</p>}
                   </TooltipContent>
                 </Tooltip>
               )
@@ -196,73 +203,77 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle }: MonthlyHeatmapPr
   }
 
   return (
-    <div className="space-y-1">
-      {/* Month navigation — compact inline */}
+    <div className="space-y-2">
+      {/* Month navigation */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => setMonth(subMonths(month, 1))}
-          className="w-5 h-5 flex items-center justify-center rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
         >
-          <ChevronLeft className="w-3 h-3" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
-        <p className="font-medium text-[10px] text-muted-foreground">
-          {format(month, 'MMM yyyy')} <span className="text-[8px] opacity-60">· {monthCompleted}/{monthPast} · {monthRate}%</span>
-        </p>
+        <div className="text-center">
+          <p className="font-semibold text-sm">{format(month, 'MMMM yyyy')}</p>
+          <p className="text-[10px] text-muted-foreground">{monthCompleted}/{monthPast} completed · {monthRate}%</p>
+        </div>
         <button
           onClick={() => setMonth(addMonths(month, 1))}
-          className="w-5 h-5 flex items-center justify-center rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
         >
-          <ChevronRight className="w-3 h-3" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-[2px]">
-        {WEEKDAY_LABELS.map(d => (
-          <div key={d} className="text-center text-[7px] text-muted-foreground/60 font-medium leading-none py-0.5">
-            {d.charAt(0)}
-          </div>
-        ))}
-      </div>
+      {/* Calendar grid — constrained width, square cells */}
+      <div className="max-w-md mx-auto">
+        {/* Weekday headers */}
+        <div className="grid grid-cols-7 gap-1.5 mb-1">
+          {WEEKDAY_LABELS.map(d => (
+            <div key={d} className="text-center text-[10px] text-muted-foreground/60 font-semibold">
+              {d.substring(0, 2)}
+            </div>
+          ))}
+        </div>
 
-      {/* Day grid — fixed-height cells to match grid card size */}
-      <div className="grid grid-cols-7 gap-[2px]">
-        {/* Empty padding cells */}
-        {Array.from({ length: startDayOfWeek }).map((_, i) => (
-          <div key={`pad-${i}`} className="h-[14px]" />
-        ))}
+        {/* Day grid — square cells */}
+        <div className="grid grid-cols-7 gap-1.5">
+          {/* Empty padding cells */}
+          {Array.from({ length: startDayOfWeek }).map((_, i) => (
+            <div key={`pad-${i}`} className="aspect-square" />
+          ))}
 
-        {/* Day cells */}
-        {days.map(day => {
-          const dateStr = format(day, 'yyyy-MM-dd')
-          const isToday = dateStr === todayStr
-          const isFuture = day > today
-          const status = entryMap.get(dateStr)
-          const completed = status === 'completed'
-          const skipped = status === 'skipped'
+          {/* Day cells */}
+          {days.map(day => {
+            const dateStr = format(day, 'yyyy-MM-dd')
+            const isToday = dateStr === todayStr
+            const isFuture = day > today
+            const status = entryMap.get(dateStr)
+            const completed = status === 'completed'
+            const skipped = status === 'skipped'
 
-          return (
-            <button
-              key={dateStr}
-              onClick={() => onToggle?.(dateStr)}
-              disabled={isFuture}
-              className={cn(
-                'h-[14px] rounded-[3px] flex items-center justify-center transition-all',
-                !isFuture && 'hover:brightness-125 cursor-pointer',
-                isFuture && 'opacity-30 cursor-default',
-                isToday && 'ring-1 ring-foreground/40'
-              )}
-              style={{ backgroundColor: getCellColor(dateStr, day) }}
-            >
-              <span className={cn(
-                'text-[7px] font-medium leading-none',
-                completed ? 'text-[var(--icon-on-color)]' : skipped ? 'text-[var(--icon-on-color)]' : isFuture ? 'text-[var(--heatmap-text-faint)]' : 'text-[var(--heatmap-text-dim)]'
-              )}>
-                {day.getDate()}
-              </span>
-            </button>
-          )
-        })}
+            return (
+              <button
+                key={dateStr}
+                onClick={() => onToggle?.(dateStr)}
+                disabled={isFuture}
+                className={cn(
+                  'aspect-square rounded-md flex items-center justify-center transition-all',
+                  !isFuture && 'hover:brightness-110 hover:scale-105 cursor-pointer active:scale-95',
+                  isFuture && 'opacity-30 cursor-default',
+                  isToday && 'ring-2 ring-foreground/30 ring-offset-1 ring-offset-background'
+                )}
+                style={{ backgroundColor: getCellColor(dateStr, day) }}
+              >
+                <span className={cn(
+                  'text-[11px] font-semibold leading-none',
+                  completed ? 'text-[var(--icon-on-color)]' : skipped ? 'text-[var(--icon-on-color)]' : isFuture ? 'text-[var(--heatmap-text-faint)]' : 'text-[var(--heatmap-text-dim)]'
+                )}>
+                  {day.getDate()}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

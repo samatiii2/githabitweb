@@ -9,8 +9,9 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { COLORS, HABIT_ICONS } from '@/lib/constants'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { useHabitsStore } from '@/lib/store/habits-store'
-import { Plus, X, Sparkles } from 'lucide-react'
+import { Plus, X, Sparkles, Dumbbell } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { HabitSession } from '@/lib/types/database'
 
 interface Props {
   open: boolean
@@ -31,6 +32,8 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
   const [groupId, setGroupId] = useState<string | null>(null)
   const [tags, setTags] = useState<string[]>([])
   const [newTag, setNewTag] = useState('')
+  const [sessions, setSessions] = useState<HabitSession[]>([])
+  const [newSessionLabel, setNewSessionLabel] = useState('')
   const [saving, setSaving] = useState(false)
 
   const addTag = () => {
@@ -41,11 +44,23 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
     }
   }
 
+  const addSession = () => {
+    const label = newSessionLabel.trim()
+    if (!label) return
+    setSessions([...sessions, { id: `s${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, label }])
+    setNewSessionLabel('')
+  }
+
+  const removeSession = (id: string) => {
+    setSessions(sessions.filter(s => s.id !== id))
+  }
+
   const reset = () => {
     setTitle(''); setIconName('zap'); setColorHex('#3DD68C')
     setFrequency('daily'); setWeeklyTarget(3)
     setTrackingType('boolean'); setTargetValue(''); setUnit('')
     setTargetMinutes(25); setGroupId(null); setTags([]); setNewTag('')
+    setSessions([]); setNewSessionLabel('')
   }
 
   const handleSubmit = async () => {
@@ -63,6 +78,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
       unit: trackingType === 'numeric' ? unit || null : null,
       target_minutes: trackingType === 'timer' ? targetMinutes : null,
       tags,
+      sessions: frequency === 'weekly' && sessions.length > 0 ? sessions : null,
       is_archived: false,
       sort_order: 0,
     })
@@ -134,24 +150,77 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                 ))}
               </div>
               {frequency === 'weekly' && (
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-xs text-muted-foreground shrink-0">Days per week:</span>
-                  <div className="flex items-center gap-1.5">
-                    {[1,2,3,4,5,6,7].map(n => (
-                      <button
-                        key={n}
-                        onClick={() => setWeeklyTarget(n)}
-                        className={cn(
-                          'w-8 h-8 rounded-full text-xs font-bold transition-all',
-                          weeklyTarget === n ? 'text-[var(--icon-on-color)] shadow-sm' : 'bg-secondary text-muted-foreground hover:text-foreground'
-                        )}
-                        style={weeklyTarget === n ? { backgroundColor: colorHex } : undefined}
-                      >
-                        {n}
-                      </button>
-                    ))}
+                <>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-xs text-muted-foreground shrink-0">Days per week:</span>
+                    <div className="flex items-center gap-1.5">
+                      {[1,2,3,4,5,6,7].map(n => (
+                        <button
+                          key={n}
+                          onClick={() => setWeeklyTarget(n)}
+                          className={cn(
+                            'w-8 h-8 rounded-full text-xs font-bold transition-all',
+                            weeklyTarget === n ? 'text-[var(--icon-on-color)] shadow-sm' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                          )}
+                          style={weeklyTarget === n ? { backgroundColor: colorHex } : undefined}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  {/* Sessions (optional) */}
+                  {weeklyTarget > 1 && (
+                    <div className="mt-3 space-y-2 p-3 rounded-xl bg-card border border-border">
+                      <div className="flex items-center gap-2">
+                        <Dumbbell className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Sessions
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">(optional)</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Name what you want to do on each day. When you check in, you&apos;ll pick which session you completed.
+                      </p>
+                      {sessions.length > 0 && (
+                        <div className="space-y-1">
+                          {sessions.map((s, i) => (
+                            <div key={s.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-secondary/50">
+                              <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                                style={{ backgroundColor: `${colorHex}15`, color: colorHex }}>
+                                {i + 1}
+                              </span>
+                              <span className="text-xs font-medium flex-1">{s.label}</span>
+                              <button onClick={() => removeSession(s.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {sessions.length < weeklyTarget && (
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder={`Session ${sessions.length + 1} (e.g. Chest + Cardio)`}
+                            value={newSessionLabel}
+                            onChange={e => setNewSessionLabel(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSession())}
+                            className="bg-secondary/50 border-0 h-8 text-xs"
+                          />
+                          <Button variant="ghost" size="icon" onClick={addSession} disabled={!newSessionLabel.trim()} className="h-8 w-8 shrink-0">
+                            <Plus className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                      {sessions.length >= weeklyTarget && (
+                        <p className="text-[10px] text-muted-foreground text-center py-1">
+                          All {weeklyTarget} sessions defined ✓
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

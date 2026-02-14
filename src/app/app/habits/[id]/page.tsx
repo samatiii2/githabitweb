@@ -8,6 +8,7 @@ import { HabitToggleButton } from '@/components/habits/habit-toggle-button'
 import { HabitTagPills } from '@/components/habits/habit-tag-pills'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { EditHabitDialog } from '@/components/habits/edit-habit-dialog'
+import { SessionPickerDialog } from '@/components/habits/session-picker-dialog'
 import { Button } from '@/components/ui/button'
 import {
   ArrowLeft, Settings, Flame, Trophy, CheckCircle, BarChart3,
@@ -20,10 +21,29 @@ export default function HabitDetailPage() {
   const params = useParams()
   const router = useRouter()
   const habitId = params.id as string
-  const { habits, entries, fetchHabits, fetchEntries, toggleEntry } = useHabitsStore()
+  const { habits, entries, fetchHabits, fetchEntries, toggleEntry, upsertEntry } = useHabitsStore()
   const [editOpen, setEditOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'year' | 'month'>('year')
   const [showStats, setShowStats] = useState(false)
+  const [sessionPickerDate, setSessionPickerDate] = useState<string | null>(null)
+
+  // Smart toggle: if habit has sessions and no entry for the date, show picker
+  const handleToggle = (date: string) => {
+    const habit = habits.find(h => h.id === habitId)
+    const dateEntry = entries.find(e => e.habit_id === habitId && e.date === date)
+
+    if (habit?.sessions && (habit.sessions as any[]).length > 0 && !dateEntry) {
+      setSessionPickerDate(date)
+    } else {
+      toggleEntry(habitId, date)
+    }
+  }
+
+  const handleSelectSession = (sessionId: string) => {
+    if (!sessionPickerDate) return
+    upsertEntry({ habit_id: habitId, date: sessionPickerDate, status: 'completed', session_id: sessionId })
+    setSessionPickerDate(null)
+  }
 
   useEffect(() => {
     if (habits.length === 0) fetchHabits()
@@ -100,14 +120,27 @@ export default function HabitDetailPage() {
             colorHex={habit.color_hex}
             isCompleted={isCompletedToday}
             isSkipped={isSkippedToday}
-            onClick={() => toggleEntry(habitId, today)}
+            onClick={() => handleToggle(today)}
           />
           <div className="flex-1">
             <p className="text-sm font-medium">
               {isCompletedToday ? 'Completed today!' : isSkippedToday ? 'Skipped today' : 'Not done yet'}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              {isCompletedToday ? 'Great job! Keep going.' : 'Tap to mark as done.'}
+              {(() => {
+                if (isCompletedToday) {
+                  const todayEntry = habitEntries.find(e => e.date === today && e.status === 'completed')
+                  const sessions = (habit.sessions as { id: string; label: string }[]) ?? []
+                  if (todayEntry?.session_id && sessions.length > 0) {
+                    const session = sessions.find(s => s.id === todayEntry.session_id)
+                    return session ? `Session: ${session.label}` : 'Great job! Keep going.'
+                  }
+                  return 'Great job! Keep going.'
+                }
+                return habit.sessions && (habit.sessions as any[]).length > 0
+                  ? 'Tap to pick today\'s session.'
+                  : 'Tap to mark as done.'
+              })()}
             </p>
           </div>
           {/* Inline quick stats */}
@@ -181,6 +214,7 @@ export default function HabitDetailPage() {
             showDayLabels
             cellSize={16}
             gap={3}
+            onToggle={(dateStr) => handleToggle(dateStr)}
           />
           {/* Legend */}
           <div className="flex items-center gap-5 text-xs text-muted-foreground pt-2 border-t border-border">
@@ -206,7 +240,7 @@ export default function HabitDetailPage() {
           <MonthlyHeatmap
             entries={habitEntries}
             colorHex={habit.color_hex}
-            onToggle={(dateStr) => toggleEntry(habitId, dateStr)}
+            onToggle={(dateStr) => handleToggle(dateStr)}
           />
           {/* Legend */}
           <div className="flex items-center gap-5 text-xs text-muted-foreground pt-4 mt-4 border-t border-border">
@@ -227,6 +261,18 @@ export default function HabitDetailPage() {
       )}
 
       <EditHabitDialog habit={habit} open={editOpen} onOpenChange={setEditOpen} />
+
+      {/* Session Picker Dialog */}
+      {sessionPickerDate && habit && (
+        <SessionPickerDialog
+          open={true}
+          onOpenChange={(open) => { if (!open) setSessionPickerDate(null) }}
+          habit={habit}
+          entries={entries}
+          date={sessionPickerDate}
+          onSelectSession={handleSelectSession}
+        />
+      )}
     </div>
   )
 }

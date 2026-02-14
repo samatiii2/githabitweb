@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useHabitsStore } from '@/lib/store/habits-store'
 import { HabitHeatmapCard } from '@/components/habits/habit-heatmap-card'
-import { HabitGridCard } from '@/components/habits/habit-grid-card'
 import { HabitListRow } from '@/components/habits/habit-list-row'
 import { CreateHabitDialog } from '@/components/habits/create-habit-dialog'
 import { HabitMonthCard } from '@/components/habits/habit-month-card'
+import { SessionPickerDialog } from '@/components/habits/session-picker-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import {
-  Plus, LayoutGrid, List, Grid3X3, CalendarDays, Search, Flame,
+  Plus, List, Grid3X3, CalendarDays, Search, Flame,
   Target, TrendingUp, Sparkles, ChevronDown, ChevronUp
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,11 +25,31 @@ export default function DashboardPage() {
     selectedGroupId, setSelectedGroupId,
     searchQuery, setSearchQuery,
     fetchHabits, fetchEntries, fetchGroups,
-    toggleEntry
+    toggleEntry, upsertEntry
   } = useHabitsStore()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [sessionPicker, setSessionPicker] = useState<{ habitId: string; date: string } | null>(null)
+
+  // Smart toggle: if habit has sessions and no entry for the date, show session picker
+  const handleToggle = (habitId: string, date?: string) => {
+    const targetDate = date ?? todayDate
+    const habit = habits.find(h => h.id === habitId)
+    const dateEntry = entries.find(e => e.habit_id === habitId && e.date === targetDate)
+
+    if (habit?.sessions && (habit.sessions as any[]).length > 0 && !dateEntry) {
+      setSessionPicker({ habitId, date: targetDate })
+    } else {
+      toggleEntry(habitId, targetDate)
+    }
+  }
+
+  const handleSelectSession = (sessionId: string) => {
+    if (!sessionPicker) return
+    upsertEntry({ habit_id: sessionPicker.habitId, date: sessionPicker.date, status: 'completed', session_id: sessionId })
+    setSessionPicker(null)
+  }
 
   useEffect(() => {
     fetchHabits()
@@ -232,7 +252,6 @@ export default function DashboardPage() {
             {([
               { mode: 'heatmap' as const, icon: Grid3X3, label: 'Year' },
               { mode: 'month' as const, icon: CalendarDays, label: 'Month' },
-              { mode: 'grid' as const, icon: LayoutGrid, label: 'Grid' },
               { mode: 'list' as const, icon: List, label: 'List' },
             ]).map(({ mode, icon: Icon, label }) => (
               <button
@@ -292,7 +311,7 @@ export default function DashboardPage() {
               entries={entriesForHabit(habit.id)}
               isCompletedToday={isCompletedToday(habit.id)}
               isSkippedToday={isSkippedToday(habit.id)}
-              onToggle={() => toggleEntry(habit.id, todayDate)}
+              onToggle={() => handleToggle(habit.id)}
             />
           ))}
         </div>
@@ -308,24 +327,8 @@ export default function DashboardPage() {
               entries={entriesForHabit(habit.id)}
               isCompletedToday={isCompletedToday(habit.id)}
               isSkippedToday={isSkippedToday(habit.id)}
-              onToggle={() => toggleEntry(habit.id, todayDate)}
-              onToggleDate={(dateStr) => toggleEntry(habit.id, dateStr)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Grid view */}
-      {viewMode === 'grid' && filteredHabits.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredHabits.map(habit => (
-            <HabitGridCard
-              key={habit.id}
-              habit={habit}
-              entries={entriesForHabit(habit.id)}
-              isCompletedToday={isCompletedToday(habit.id)}
-              isSkippedToday={isSkippedToday(habit.id)}
-              onToggle={() => toggleEntry(habit.id, todayDate)}
+              onToggle={() => handleToggle(habit.id)}
+              onToggleDate={(dateStr) => handleToggle(habit.id, dateStr)}
             />
           ))}
         </div>
@@ -341,13 +344,30 @@ export default function DashboardPage() {
               entries={entriesForHabit(habit.id)}
               isCompletedToday={isCompletedToday(habit.id)}
               isSkippedToday={isSkippedToday(habit.id)}
-              onToggle={() => toggleEntry(habit.id, todayDate)}
+              onToggle={() => handleToggle(habit.id)}
+              onToggleDate={(dateStr) => handleToggle(habit.id, dateStr)}
             />
           ))}
         </div>
       )}
 
       <CreateHabitDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      {/* Session Picker Dialog */}
+      {sessionPicker && (() => {
+        const habit = habits.find(h => h.id === sessionPicker.habitId)
+        if (!habit) return null
+        return (
+          <SessionPickerDialog
+            open={true}
+            onOpenChange={(open) => { if (!open) setSessionPicker(null) }}
+            habit={habit}
+            entries={entries}
+            date={sessionPicker.date}
+            onSelectSession={handleSelectSession}
+          />
+        )
+      })()}
     </div>
   )
 }

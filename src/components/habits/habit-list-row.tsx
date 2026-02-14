@@ -16,9 +16,10 @@ interface Props {
   isCompletedToday: boolean
   isSkippedToday: boolean
   onToggle: () => void
+  onToggleDate?: (dateStr: string) => void
 }
 
-export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday, onToggle }: Props) {
+export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday, onToggle, onToggleDate }: Props) {
   const lastDays = getLastNDays(7)
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const streak = useMemo(() => calculateStreak(entries), [entries])
@@ -54,7 +55,7 @@ export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday,
         <HabitTagPills tags={habit.tags as string[]} colorHex={habit.color_hex} max={3} compact />
       </Link>
 
-      {/* Last 7 days mini dots */}
+      {/* Last 7 days — clickable cells */}
       <div className="hidden md:flex items-center gap-1 shrink-0">
         {lastDays.map(day => {
           const dateStr = format(day, 'yyyy-MM-dd')
@@ -64,9 +65,18 @@ export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday,
           const isToday = dateStr === todayStr
 
           return (
-            <div
+            <button
               key={dateStr}
-              className="w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                if (onToggleDate) {
+                  onToggleDate(dateStr)
+                } else if (isToday) {
+                  onToggle()
+                }
+              }}
+              className="w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold transition-all hover:scale-110 hover:brightness-125 active:scale-95"
               title={format(day, 'EEE, MMM d')}
               style={{
                 backgroundColor: completed
@@ -79,7 +89,7 @@ export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday,
               }}
             >
               {skipped && !completed ? '⏸' : ''}
-            </div>
+            </button>
           )
         })}
       </div>

@@ -35,6 +35,7 @@ create table public.habits (
   unit text,
   target_minutes int,
   tags jsonb not null default '[]'::jsonb,
+  sessions jsonb,
   is_archived boolean not null default false,
   sort_order int not null default 0,
   created_at timestamptz not null default now()
@@ -51,6 +52,7 @@ create table public.habit_entries (
   date date not null,
   value double precision,
   status text not null default 'completed' check (status in ('completed', 'skipped')),
+  session_id text,
   note text,
   created_at timestamptz not null default now(),
   unique(habit_id, date)

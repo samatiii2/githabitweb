@@ -10,6 +10,11 @@ export interface RecurrenceRule {
 
 export type RecurrenceType = 'none' | 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'monthly' | 'yearly' | 'custom'
 
+export interface HabitSession {
+  id: string
+  label: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -28,6 +33,7 @@ export interface Database {
           unit: string | null
           target_minutes: number | null
           tags: string[]
+          sessions: HabitSession[] | null
           is_archived: boolean
           sort_order: number
           created_at: string
@@ -47,6 +53,7 @@ export interface Database {
           date: string
           value: number | null
           status: 'completed' | 'skipped'
+          session_id: string | null
           note: string | null
           created_at: string
         }
