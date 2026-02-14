@@ -49,3 +49,43 @@ ALTER TABLE public.task_projects ADD COLUMN IF NOT EXISTS icon_name text NOT NUL
 
 ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS sessions jsonb;
 ALTER TABLE public.habit_entries ADD COLUMN IF NOT EXISTS session_id text;
+
+
+-- ════════════════════════════════════════════════════════════
+-- Migration 004: Harden RLS policies on junction tables
+-- Fixed: task_project_links, task_label_links, task_project_sections
+-- Purpose: Add WITH CHECK clauses and dual ownership checks
+--          to prevent cross-user data linking
+-- Date: 2026-01
+-- ════════════════════════════════════════════════════════════
+
+-- task_project_sections: add WITH CHECK
+DROP POLICY IF EXISTS "Users manage own sections" ON public.task_project_sections;
+CREATE POLICY "Users manage own sections" ON public.task_project_sections
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.task_projects WHERE id = project_id AND user_id = auth.uid())
+  ) WITH CHECK (
+    EXISTS (SELECT 1 FROM public.task_projects WHERE id = project_id AND user_id = auth.uid())
+  );
+
+-- task_project_links: add dual ownership (task + project) and WITH CHECK
+DROP POLICY IF EXISTS "Users manage own links" ON public.task_project_links;
+CREATE POLICY "Users manage own links" ON public.task_project_links
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.tasks WHERE id = task_id AND user_id = auth.uid())
+    AND EXISTS (SELECT 1 FROM public.task_projects WHERE id = project_id AND user_id = auth.uid())
+  ) WITH CHECK (
+    EXISTS (SELECT 1 FROM public.tasks WHERE id = task_id AND user_id = auth.uid())
+    AND EXISTS (SELECT 1 FROM public.task_projects WHERE id = project_id AND user_id = auth.uid())
+  );
+
+-- task_label_links: add dual ownership (task + label) and WITH CHECK
+DROP POLICY IF EXISTS "Users manage own label links" ON public.task_label_links;
+CREATE POLICY "Users manage own label links" ON public.task_label_links
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.tasks WHERE id = task_id AND user_id = auth.uid())
+    AND EXISTS (SELECT 1 FROM public.task_labels WHERE id = label_id AND user_id = auth.uid())
+  ) WITH CHECK (
+    EXISTS (SELECT 1 FROM public.tasks WHERE id = task_id AND user_id = auth.uid())
+    AND EXISTS (SELECT 1 FROM public.task_labels WHERE id = label_id AND user_id = auth.uid())
+  );

@@ -33,6 +33,7 @@ export default function ChallengesPage() {
         weekly_target: h.frequency === 'weekly' ? 5 : null,
         group_id: null,
         tags: [],
+        sessions: null,
         is_archived: false,
         sort_order: 0,
       })

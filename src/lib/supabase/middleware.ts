@@ -6,7 +6,11 @@ export async function updateSession(request: NextRequest) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key || url === 'your-supabase-url-here') {
+  if (!url || !key || url === 'your-supabase-url-here' || url.includes('placeholder')) {
+    // Block access to protected routes if Supabase is not configured
+    if (request.nextUrl.pathname.startsWith('/app')) {
+      return new NextResponse('Service unavailable — Supabase not configured', { status: 503 })
+    }
     return supabaseResponse
   }
 

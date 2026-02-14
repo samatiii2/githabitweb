@@ -110,6 +110,8 @@ alter table public.task_project_sections enable row level security;
 create policy "Users manage own sections" on public.task_project_sections
   for all using (
     exists (select 1 from public.task_projects where id = project_id and user_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.task_projects where id = project_id and user_id = auth.uid())
   );
 
 -- ── Task Project Links ──
@@ -125,6 +127,10 @@ alter table public.task_project_links enable row level security;
 create policy "Users manage own links" on public.task_project_links
   for all using (
     exists (select 1 from public.tasks where id = task_id and user_id = auth.uid())
+    and exists (select 1 from public.task_projects where id = project_id and user_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.tasks where id = task_id and user_id = auth.uid())
+    and exists (select 1 from public.task_projects where id = project_id and user_id = auth.uid())
   );
 
 -- ── Task Labels ──
@@ -152,6 +158,10 @@ alter table public.task_label_links enable row level security;
 create policy "Users manage own label links" on public.task_label_links
   for all using (
     exists (select 1 from public.tasks where id = task_id and user_id = auth.uid())
+    and exists (select 1 from public.task_labels where id = label_id and user_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.tasks where id = task_id and user_id = auth.uid())
+    and exists (select 1 from public.task_labels where id = label_id and user_id = auth.uid())
   );
 
 -- ── Task Saved Filters ──

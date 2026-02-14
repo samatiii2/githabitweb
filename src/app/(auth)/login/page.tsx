@@ -24,7 +24,15 @@ export default function LoginPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setError(error.message)
+      // Sanitize error messages to avoid leaking auth internals
+      const msg = error.message?.toLowerCase()
+      if (msg?.includes('invalid') || msg?.includes('credentials')) {
+        setError('Invalid email or password')
+      } else if (msg?.includes('rate') || msg?.includes('limit')) {
+        setError('Too many attempts. Please try again later.')
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
       setLoading(false)
     } else {
       router.push('/app')

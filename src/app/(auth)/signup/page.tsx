@@ -26,8 +26,8 @@ export default function SignupPage() {
       setError('Passwords do not match')
       return
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
 
@@ -35,7 +35,17 @@ export default function SignupPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) {
-      setError(error.message)
+      // Sanitize error messages to avoid leaking auth internals
+      const msg = error.message?.toLowerCase()
+      if (msg?.includes('already registered') || msg?.includes('already exists')) {
+        setError('An account with this email already exists')
+      } else if (msg?.includes('rate') || msg?.includes('limit')) {
+        setError('Too many attempts. Please try again later.')
+      } else if (msg?.includes('valid') || msg?.includes('email')) {
+        setError('Please provide a valid email address')
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
       setLoading(false)
     } else {
       setSuccess(true)
