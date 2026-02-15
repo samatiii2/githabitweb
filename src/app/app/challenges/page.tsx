@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { CHALLENGES, CATEGORIES, type ChallengeTemplate } from '@/lib/data/challenges'
 import { useHabitsStore } from '@/lib/store/habits-store'
+import { useT } from '@/lib/i18n/provider'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -11,6 +12,7 @@ import { Check, Trophy, Clock, Zap } from 'lucide-react'
 
 export default function ChallengesPage() {
   const { createHabit } = useHabitsStore()
+  const t = useT()
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [confirmChallenge, setConfirmChallenge] = useState<ChallengeTemplate | null>(null)
   const [startedIds, setStartedIds] = useState<Set<string>>(new Set())
@@ -46,9 +48,9 @@ export default function ChallengesPage() {
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Challenges</h1>
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('challenges.title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {filtered.length} challenges to boost your habits
+          {t('challenges.subtitle', { count: filtered.length })}
         </p>
       </div>
 
@@ -63,7 +65,7 @@ export default function ChallengesPage() {
               : 'bg-secondary text-muted-foreground hover:text-foreground'
           )}
         >
-          All
+          {t('challenges.all')}
         </button>
         {CATEGORIES.map(cat => (
           <button
@@ -99,10 +101,10 @@ export default function ChallengesPage() {
                   <p className="font-semibold text-sm leading-snug">{challenge.name}</p>
                   <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {challenge.durationDays}d
+                      <Clock className="w-3 h-3" /> {t('challenges.durationDays', { n: challenge.durationDays })}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> {challenge.habits.length} habit{challenge.habits.length > 1 ? 's' : ''}
+                      <Zap className="w-3 h-3" /> {challenge.habits.length > 1 ? t('challenges.habitCountPlural', { count: challenge.habits.length }) : t('challenges.habitCount', { count: challenge.habits.length })}
                     </span>
                   </div>
                 </div>
@@ -124,7 +126,7 @@ export default function ChallengesPage() {
               {/* Action */}
               {started ? (
                 <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-primary/8 text-primary text-sm font-medium">
-                  <Check className="w-4 h-4" /> Started
+                  <Check className="w-4 h-4" /> {t('challenges.started')}
                 </div>
               ) : (
                 <Button
@@ -133,7 +135,7 @@ export default function ChallengesPage() {
                   className="w-full text-xs font-semibold h-9"
                   style={{ backgroundColor: challenge.colorHex, color: 'var(--icon-on-color)' }}
                 >
-                  <Trophy className="w-3.5 h-3.5 mr-1.5" /> Start challenge
+                  <Trophy className="w-3.5 h-3.5 mr-1.5" /> {t('challenges.startChallenge')}
                 </Button>
               )}
             </div>
@@ -144,20 +146,20 @@ export default function ChallengesPage() {
       <AlertDialog open={!!confirmChallenge} onOpenChange={() => setConfirmChallenge(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Start challenge?</AlertDialogTitle>
+            <AlertDialogTitle>{t('challenges.startConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
               {confirmChallenge && (
                 <>
-                  <strong>{confirmChallenge.name}</strong> will create {confirmChallenge.habits.length} habit{confirmChallenge.habits.length > 1 ? 's' : ''} to track for {confirmChallenge.durationDays} days.
+                  {t('challenges.startDesc', { name: confirmChallenge.name, count: confirmChallenge.habits.length, days: confirmChallenge.durationDays })}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => confirmChallenge && handleStart(confirmChallenge)}
               className="bg-primary text-primary-foreground hover:bg-primary/90">
-              Start
+              {t('challenges.start')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

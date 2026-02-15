@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Flame, ArrowLeft } from 'lucide-react'
+import { useT } from '@/lib/i18n/provider'
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -27,6 +28,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const router = useRouter()
+  const t = useT()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,11 +41,11 @@ export default function LoginPage() {
       // Sanitize error messages to avoid leaking auth internals
       const msg = error.message?.toLowerCase()
       if (msg?.includes('invalid') || msg?.includes('credentials')) {
-        setError('Invalid email or password')
+        setError(t('auth.invalidCredentials'))
       } else if (msg?.includes('rate') || msg?.includes('limit')) {
-        setError('Too many attempts. Please try again later.')
+        setError(t('auth.tooManyAttempts'))
       } else {
-        setError('Something went wrong. Please try again.')
+        setError(t('common.somethingWentWrong'))
       }
       setLoading(false)
     } else {
@@ -62,7 +64,7 @@ export default function LoginPage() {
       },
     })
     if (error) {
-      setError('Something went wrong. Please try again.')
+      setError(t('common.somethingWentWrong'))
       setGoogleLoading(false)
     }
   }
@@ -78,7 +80,7 @@ export default function LoginPage() {
           </div>
           <h2 className="text-3xl font-bold tracking-tight">giHabit</h2>
           <p className="text-muted-foreground max-w-sm">
-            Track your habits with a beautiful GitHub-style heatmap. Build consistency, one day at a time.
+            {t('auth.loginBranding')}
           </p>
           {/* Decorative heatmap */}
           <div className="flex gap-[2px] justify-center opacity-30 mt-8">
@@ -99,7 +101,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm space-y-8">
           <div>
             <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-8 transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to home
+              <ArrowLeft className="w-3.5 h-3.5" /> {t('common.backToHome')}
             </Link>
             <div className="lg:hidden flex items-center gap-2.5 mb-6">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -107,8 +109,8 @@ export default function LoginPage() {
               </div>
               <span className="font-bold text-sm">giHabit</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground text-sm mt-1">Sign in to continue tracking your habits</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t('auth.welcomeBack')}</h1>
+            <p className="text-muted-foreground text-sm mt-1">{t('auth.signInSubtitle')}</p>
           </div>
 
           {/* Google OAuth */}
@@ -119,7 +121,7 @@ export default function LoginPage() {
               className="w-full flex items-center justify-center gap-3 h-10 px-4 rounded-lg border border-border bg-background hover:bg-accent text-sm font-medium transition-colors disabled:opacity-50"
             >
               <GoogleIcon className="w-4.5 h-4.5" />
-              {googleLoading ? 'Redirecting...' : 'Continue with Google'}
+              {googleLoading ? t('auth.redirecting') : t('auth.continueGoogle')}
             </button>
 
             <div className="relative">
@@ -127,18 +129,18 @@ export default function LoginPage() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">or</span>
+                <span className="bg-background px-2 text-muted-foreground">{t('common.or')}</span>
               </div>
             </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t('auth.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -146,7 +148,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Password</Label>
+              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('auth.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -163,14 +165,14 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? t('auth.signingIn') : t('auth.signIn')}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link href="/signup" className="text-primary hover:underline font-medium">
-              Sign up
+              {t('auth.signUp')}
             </Link>
           </p>
         </div>

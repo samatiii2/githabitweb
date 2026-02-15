@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Flame, ArrowLeft, CheckCircle } from 'lucide-react'
+import { useT } from '@/lib/i18n/provider'
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -29,17 +30,18 @@ export default function SignupPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
+  const t = useT()
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('auth.passwordMismatch'))
       return
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters')
+      setError(t('auth.passwordTooShort'))
       return
     }
 
@@ -50,13 +52,13 @@ export default function SignupPage() {
       // Sanitize error messages to avoid leaking auth internals
       const msg = error.message?.toLowerCase()
       if (msg?.includes('already registered') || msg?.includes('already exists')) {
-        setError('An account with this email already exists')
+        setError(t('auth.emailExists'))
       } else if (msg?.includes('rate') || msg?.includes('limit')) {
-        setError('Too many attempts. Please try again later.')
+        setError(t('auth.tooManyAttempts'))
       } else if (msg?.includes('valid') || msg?.includes('email')) {
-        setError('Please provide a valid email address')
+        setError(t('auth.invalidEmail'))
       } else {
-        setError('Something went wrong. Please try again.')
+        setError(t('common.somethingWentWrong'))
       }
       setLoading(false)
     } else {
@@ -76,7 +78,7 @@ export default function SignupPage() {
       },
     })
     if (error) {
-      setError('Something went wrong. Please try again.')
+      setError(t('common.somethingWentWrong'))
       setGoogleLoading(false)
     }
   }
@@ -88,8 +90,8 @@ export default function SignupPage() {
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
             <CheckCircle className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Account created!</h1>
-          <p className="text-muted-foreground text-sm">Redirecting you to the app...</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('auth.accountCreated')}</h1>
+          <p className="text-muted-foreground text-sm">{t('auth.redirectToApp')}</p>
         </div>
       </div>
     )
@@ -106,7 +108,7 @@ export default function SignupPage() {
           </div>
           <h2 className="text-3xl font-bold tracking-tight">giHabit</h2>
           <p className="text-muted-foreground max-w-sm">
-            Join thousands building better habits. Track progress, complete challenges, and stay consistent.
+            {t('auth.signupBranding')}
           </p>
           {/* Decorative heatmap */}
           <div className="flex gap-[2px] justify-center opacity-30 mt-8">
@@ -127,7 +129,7 @@ export default function SignupPage() {
         <div className="w-full max-w-sm space-y-8">
           <div>
             <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-8 transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to home
+              <ArrowLeft className="w-3.5 h-3.5" /> {t('common.backToHome')}
             </Link>
             <div className="lg:hidden flex items-center gap-2.5 mb-6">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -135,8 +137,8 @@ export default function SignupPage() {
               </div>
               <span className="font-bold text-sm">giHabit</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-            <p className="text-muted-foreground text-sm mt-1">Start building better habits today</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t('auth.createAccount')}</h1>
+            <p className="text-muted-foreground text-sm mt-1">{t('auth.createAccountSubtitle')}</p>
           </div>
 
           {/* Google OAuth */}
@@ -147,7 +149,7 @@ export default function SignupPage() {
               className="w-full flex items-center justify-center gap-3 h-10 px-4 rounded-lg border border-border bg-background hover:bg-accent text-sm font-medium transition-colors disabled:opacity-50"
             >
               <GoogleIcon className="w-4.5 h-4.5" />
-              {googleLoading ? 'Redirecting...' : 'Continue with Google'}
+              {googleLoading ? t('auth.redirecting') : t('auth.continueGoogle')}
             </button>
 
             <div className="relative">
@@ -155,18 +157,18 @@ export default function SignupPage() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">or</span>
+                <span className="bg-background px-2 text-muted-foreground">{t('common.or')}</span>
               </div>
             </div>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t('auth.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -174,7 +176,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Password</Label>
+              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('auth.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -186,7 +188,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Confirm password</Label>
+              <Label htmlFor="confirmPassword" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('auth.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -203,14 +205,14 @@ export default function SignupPage() {
             )}
 
             <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? t('auth.creatingAccount') : t('auth.createBtn')}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
+            {t('auth.hasAccount')}{' '}
             <Link href="/login" className="text-primary hover:underline font-medium">
-              Sign in
+              {t('auth.signIn')}
             </Link>
           </p>
         </div>

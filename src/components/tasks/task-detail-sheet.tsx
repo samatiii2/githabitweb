@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n/provider'
 import { format, addDays, nextSaturday, startOfWeek, addWeeks } from 'date-fns'
 import type { Task, RecurrenceRule, RecurrenceType } from '@/lib/types/database'
 import { RecurrencePicker } from '@/components/tasks/recurrence-picker'
@@ -29,11 +30,7 @@ interface Props {
   onClose: () => void
 }
 
-const STATUS_OPTIONS = [
-  { value: 'todo', label: 'To Do', icon: Circle, color: '#71717a' },
-  { value: 'doing', label: 'In Progress', icon: ArrowRightCircle, color: '#60a5fa' },
-  { value: 'done', label: 'Done', icon: CheckCircle2, color: '#3DD68C' },
-] as const
+// STATUS_OPTIONS moved inside TaskDetailSheet (depends on t())
 
 function toDueDateString(d: string | null | undefined): string {
   if (!d) return ''
@@ -57,6 +54,7 @@ function getQuickDates() {
 
 // ─── Due Date Picker (calendar + quick dates) ───────────
 function DueDatePicker({ value, onChange, onClear }: { value: string; onChange: (v: string) => void; onClear: () => void }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const quickDates = useMemo(() => getQuickDates(), [])
   const selectedDate = value ? new Date(value + 'T12:00:00') : undefined
@@ -80,7 +78,7 @@ function DueDatePicker({ value, onChange, onClear }: { value: string; onChange: 
             )}
           >
             <CalendarDays className="w-4 h-4 shrink-0" />
-            <span className="flex-1">{value ? format(new Date(value + 'T12:00:00'), 'EEEE, MMM d, yyyy') : 'No due date'}</span>
+            <span className="flex-1">{value ? format(new Date(value + 'T12:00:00'), 'EEEE, MMM d, yyyy') : t('common.noDueDate')}</span>
             {value && (
               <button
                 onClick={(e) => { e.stopPropagation(); onClear(); }}
@@ -146,7 +144,15 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
     addLabelToTask, removeLabelFromTask, addProjectToTask, removeProjectFromTask,
   } = useTasksStore()
 
-  const task = tasks.find(t => t.id === taskId)
+  const t = useT()
+
+  const STATUS_OPTIONS = useMemo(() => [
+    { value: 'todo' as const, label: t('tasks.statusTodo'), icon: Circle, color: '#71717a' },
+    { value: 'doing' as const, label: t('tasks.statusDoing'), icon: ArrowRightCircle, color: '#60a5fa' },
+    { value: 'done' as const, label: t('tasks.statusDone'), icon: CheckCircle2, color: '#3DD68C' },
+  ], [t])
+
+  const task = tasks.find(tk => tk.id === taskId)
   const subtasks = getSubtasks(taskId)
   const taskLabels = getLabelsForTask(taskId)
   const taskProjects = getProjectsForTask(taskId)
@@ -241,7 +247,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
               </div>
             </button>
             <span className="text-xs text-muted-foreground">
-              {task.is_completed ? 'Completed' : statusOpt?.label}
+              {task.is_completed ? t('common.completed') : statusOpt?.label}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -249,7 +255,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
               onClick={() => setEditMode(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
-              <Pencil className="w-3.5 h-3.5" /> Edit
+              <Pencil className="w-3.5 h-3.5" /> {t('common.edit')}
             </button>
             <button onClick={onClose} className="hidden lg:block text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-accent">
               <X className="w-4 h-4" />
@@ -280,7 +286,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
                   style={{ backgroundColor: `${priorityInfo.color}12`, color: priorityInfo.color }}
                 >
                   <Flag className="w-3 h-3" />
-                  {priorityInfo.label}
+                  {t('tasks.priorityN', { n: task.priority })}
                 </span>
               )}
             </div>
@@ -304,7 +310,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
             {/* Description / Notes */}
             {task.note && (
               <div className="space-y-1.5">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Notes</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('common.notes')}</p>
                 <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{task.note}</p>
               </div>
             )}
@@ -337,7 +343,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <ListTodo className="w-3 h-3" /> Subtasks
+                    <ListTodo className="w-3 h-3" /> {t('tasks.subtasks')}
                   </p>
                   <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded-full">
                     {subtasks.filter(s => s.is_completed).length}/{subtasks.length}
@@ -369,8 +375,8 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
 
             {/* Meta */}
             <div className="space-y-1 text-[11px] text-muted-foreground pt-2 border-t border-border">
-              <p>Created {format(new Date(task.created_at), 'MMM d, yyyy')}</p>
-              {task.completed_at && <p>Completed {format(new Date(task.completed_at), 'MMM d, yyyy')}</p>}
+              <p>{t('tasks.createdOn', { date: format(new Date(task.created_at), 'MMM d, yyyy') })}</p>
+              {task.completed_at && <p>{t('tasks.completedOn', { date: format(new Date(task.completed_at), 'MMM d, yyyy') })}</p>}
             </div>
           </div>
         </ScrollArea>
@@ -395,14 +401,14 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
               {task.is_completed && <span className="text-primary-foreground text-[10px] font-bold">✓</span>}
             </div>
           </button>
-          <span className="text-xs font-medium text-primary">Editing</span>
+          <span className="text-xs font-medium text-primary">{t('tasks.editing')}</span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setEditMode(false)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            <Check className="w-3.5 h-3.5" /> Done
+            <Check className="w-3.5 h-3.5" /> {t('common.done')}
           </button>
           <button onClick={onClose} className="hidden lg:block text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-accent">
             <X className="w-4 h-4" />
@@ -421,12 +427,12 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
             onBlur={() => title.trim() && title !== task.title && saveField('title', title.trim())}
             onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
             className="text-lg font-semibold bg-transparent w-full outline-none placeholder:text-muted-foreground"
-            placeholder="Task title"
+            placeholder={t('tasks.taskTitle')}
           />
 
           {/* Status */}
           <div className="space-y-2">
-            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
+            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('common.status')}</Label>
             <div className="flex gap-1.5">
               {STATUS_OPTIONS.map(opt => {
                 const Icon = opt.icon
@@ -466,7 +472,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
           {/* Priority */}
           <div className="space-y-2">
             <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Flag className="w-3 h-3" /> Priority
+              <Flag className="w-3 h-3" /> {t('common.priority')}
             </Label>
             <div className="flex gap-1">
               {[1, 2, 3, 4].map(p => (
@@ -484,7 +490,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
                   } : undefined}
                 >
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRIORITY_LABELS[p].color }} />
-                  {PRIORITY_LABELS[p].label}
+                  {t('tasks.priorityN', { n: p })}
                 </button>
               ))}
             </div>
@@ -493,7 +499,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
           {/* Due date */}
           <div className="space-y-2">
             <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="w-3 h-3" /> Due date
+              <Calendar className="w-3 h-3" /> {t('common.dueDate')}
             </Label>
             <DueDatePicker
               value={dueDate}
@@ -505,7 +511,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
           {/* Recurrence */}
           <div className="space-y-2">
             <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <RefreshCw className="w-3 h-3" /> Recurrence
+              <RefreshCw className="w-3 h-3" /> {t('tasks.recurrence')}
             </Label>
             <RecurrencePicker
               recurrence={recurrence}
@@ -522,12 +528,12 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Notes</Label>
+            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('common.notes')}</Label>
             <Textarea
               value={note}
               onChange={e => setNote(e.target.value)}
               onBlur={() => note !== (task.note ?? '') && saveField('note', note || null)}
-              placeholder="Add notes, details, links..."
+              placeholder={t('tasks.addNotes')}
               rows={4}
               className="bg-secondary/50 border-0 resize-none text-sm"
             />
@@ -536,7 +542,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
           {/* Subtasks */}
           <div className="space-y-2">
             <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <ListTodo className="w-3 h-3" /> Subtasks
+              <ListTodo className="w-3 h-3" /> {t('tasks.subtasks')}
               {subtasks.length > 0 && (
                 <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded-full ml-1">
                   {subtasks.filter(s => s.is_completed).length}/{subtasks.length}
@@ -579,7 +585,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
                 value={newSubtask}
                 onChange={e => setNewSubtask(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddSubtask()}
-                placeholder="Add subtask..."
+                placeholder={t('tasks.addSubtask')}
                 className="bg-secondary/50 border-0 h-8 text-xs"
               />
               <Button variant="ghost" size="icon" onClick={handleAddSubtask} disabled={!newSubtask.trim()} className="h-8 w-8 shrink-0">
@@ -592,7 +598,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Tag className="w-3 h-3" /> Labels
+                <Tag className="w-3 h-3" /> {t('tasks.labels')}
               </Label>
               {unassignedLabels.length > 0 && (
                 <button
@@ -610,7 +616,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
                     className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: `${label.color_hex}12`, color: label.color_hex }}
                     onClick={() => removeLabelFromTask(taskId, label.id)}
-                    title="Click to remove"
+                    title={t('tasks.clickToRemove')}
                   >
                     {label.name}
                     <X className="w-2.5 h-2.5" />
@@ -631,7 +637,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
               </div>
             )}
             {labels.length === 0 && (
-              <p className="text-[11px] text-muted-foreground">No labels created. Create labels from the sidebar.</p>
+              <p className="text-[11px] text-muted-foreground">{t('tasks.noLabelsCreated')}</p>
             )}
           </div>
 
@@ -639,7 +645,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <FolderOpen className="w-3 h-3" /> Projects
+                <FolderOpen className="w-3 h-3" /> {t('tasks.projects')}
               </Label>
               {unassignedProjects.length > 0 && (
                 <button
@@ -657,7 +663,7 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
                     className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: `${project.color_hex}12`, color: project.color_hex }}
                     onClick={() => removeProjectFromTask(taskId, project.id)}
-                    title="Click to remove"
+                    title={t('tasks.clickToRemove')}
                   >
                     <DynamicIcon name={project.icon_name} className="w-3 h-3" />
                     {project.name}
@@ -680,31 +686,31 @@ export function TaskDetailSheet({ taskId, onClose }: Props) {
               </div>
             )}
             {projects.length === 0 && (
-              <p className="text-[11px] text-muted-foreground">No projects created. Create projects from the sidebar.</p>
+              <p className="text-[11px] text-muted-foreground">{t('tasks.noProjectsCreated')}</p>
             )}
           </div>
 
           {/* Meta info */}
           <div className="space-y-1 text-[11px] text-muted-foreground pt-2 border-t border-border">
-            <p>Created {format(new Date(task.created_at), 'MMM d, yyyy')}</p>
-            {task.completed_at && <p>Completed {format(new Date(task.completed_at), 'MMM d, yyyy')}</p>}
+            <p>{t('tasks.createdOn', { date: format(new Date(task.created_at), 'MMM d, yyyy') })}</p>
+            {task.completed_at && <p>{t('tasks.completedOn', { date: format(new Date(task.completed_at), 'MMM d, yyyy') })}</p>}
           </div>
 
           {/* Delete */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 gap-2 text-xs">
-                <Trash2 className="w-3.5 h-3.5" /> Delete task
+                <Trash2 className="w-3.5 h-3.5" /> {t('tasks.deleteTask')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete task?</AlertDialogTitle>
-                <AlertDialogDescription>This will permanently delete this task and all subtasks.</AlertDialogDescription>
+                <AlertDialogTitle>{t('tasks.deleteTaskConfirm')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('tasks.deleteTaskWarning')}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

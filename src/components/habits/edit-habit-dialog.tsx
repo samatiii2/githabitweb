@@ -13,6 +13,7 @@ import { useHabitsStore } from '@/lib/store/habits-store'
 import { useRouter } from 'next/navigation'
 import { Plus, X, Trash2, Pencil, Dumbbell } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n/provider'
 import type { Habit, HabitSession } from '@/lib/types/database'
 
 interface Props {
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
+  const t = useT()
   const { updateHabit, deleteHabit, groups } = useHabitsStore()
   const router = useRouter()
   const [title, setTitle] = useState(habit.title)
@@ -52,8 +54,8 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
   }, [open, habit])
 
   const addTag = () => {
-    const t = newTag.trim()
-    if (t && !tags.includes(t)) { setTags([...tags, t]); setNewTag('') }
+    const v = newTag.trim()
+    if (v && !tags.includes(v)) { setTags([...tags, v]); setNewTag('') }
   }
 
   const addSession = () => {
@@ -96,7 +98,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
         <SheetHeader className="px-6 py-4 border-b border-border">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Pencil className="w-4 h-4 text-muted-foreground" />
-            Edit habit
+            {t('habits.editHabit')}
           </SheetTitle>
         </SheetHeader>
 
@@ -111,16 +113,16 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
                 <DynamicIcon name={iconName} className="w-6 h-6" style={{ color: colorHex }} />
               </div>
               <div className="flex-1">
-                <p className="font-semibold">{title || 'Habit name'}</p>
+                <p className="font-semibold">{title || t('habits.habitName')}</p>
                 <p className="text-xs text-muted-foreground">
-                  {frequency === 'daily' ? 'Daily' : `${weeklyTarget}x/week`} · {trackingType === 'boolean' ? 'Yes/No' : trackingType}
+                  {frequency === 'daily' ? 'Daily' : `${weeklyTarget}x/week`} · {trackingType === 'boolean' ? t('habits.yesNo') : trackingType}
                 </p>
               </div>
             </div>
 
             {/* Name */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.habitName')}</Label>
               <Input
                 value={title}
                 onChange={e => setTitle(e.target.value)}
@@ -130,7 +132,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
 
             {/* Frequency */}
             <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Frequency</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.frequency')}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {(['daily', 'weekly'] as const).map(f => (
                   <button key={f} onClick={() => setFrequency(f)}
@@ -142,7 +144,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
                     )}
                     style={frequency === f ? { backgroundColor: `${colorHex}12`, color: colorHex, boxShadow: `0 0 0 1px ${colorHex}30` } : undefined}
                   >
-                    {f === 'daily' ? 'Every day' : 'Weekly'}
+                    {f === 'daily' ? t('habits.daily') : t('habits.weekly')}
                   </button>
                 ))}
               </div>
@@ -152,7 +154,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
             {frequency === 'weekly' && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground shrink-0">Days per week:</span>
+                  <span className="text-xs text-muted-foreground shrink-0">{t('habits.daysPerWeek')}:</span>
                   <div className="flex items-center gap-1.5">
                     {[1,2,3,4,5,6,7].map(n => (
                       <button
@@ -176,12 +178,11 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
                     <div className="flex items-center gap-2">
                       <Dumbbell className="w-3.5 h-3.5 text-muted-foreground" />
                       <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Sessions
+                        {t('habits.sessionsOptional')}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">(optional)</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Name what you want to do on each day. When you check in, you&apos;ll pick which session you completed.
+                      {t('habits.sessionsDesc')}
                     </p>
                     {sessions.length > 0 && (
                       <div className="space-y-1">
@@ -202,7 +203,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
                     {sessions.length < weeklyTarget && (
                       <div className="flex gap-2">
                         <Input
-                          placeholder={`Session ${sessions.length + 1} (e.g. Chest + Cardio)`}
+                          placeholder={t('habits.sessionPlaceholder', { n: sessions.length + 1 })}
                           value={newSessionLabel}
                           onChange={e => setNewSessionLabel(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSession())}
@@ -215,7 +216,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
                     )}
                     {sessions.length >= weeklyTarget && (
                       <p className="text-[10px] text-muted-foreground text-center py-1">
-                        All {weeklyTarget} sessions defined ✓
+                        {t('habits.allSessionsDefined', { count: weeklyTarget })}
                       </p>
                     )}
                   </div>
@@ -225,19 +226,19 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
 
             {/* Tracking type */}
             <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tracking type</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.trackingType')}</Label>
               <div className="grid grid-cols-3 gap-2">
-                {(['boolean', 'numeric', 'timer'] as const).map(t => (
-                  <button key={t} onClick={() => setTrackingType(t)}
+                {(['boolean', 'numeric', 'timer'] as const).map(tt => (
+                  <button key={tt} onClick={() => setTrackingType(tt)}
                     className={cn(
                       'py-2.5 rounded-lg text-sm font-medium border transition-all capitalize',
-                      trackingType === t
+                      trackingType === tt
                         ? 'border-transparent'
                         : 'border-border text-muted-foreground hover:text-foreground'
                     )}
-                    style={trackingType === t ? { backgroundColor: `${colorHex}12`, color: colorHex, boxShadow: `0 0 0 1px ${colorHex}30` } : undefined}
+                    style={trackingType === tt ? { backgroundColor: `${colorHex}12`, color: colorHex, boxShadow: `0 0 0 1px ${colorHex}30` } : undefined}
                   >
-                    {t === 'boolean' ? 'Yes/No' : t}
+                    {tt === 'boolean' ? t('habits.yesNo') : tt === 'numeric' ? t('habits.number') : t('habits.timer')}
                   </button>
                 ))}
               </div>
@@ -245,9 +246,9 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
 
             {/* Tags */}
             <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tags</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.tagsOptional')}</Label>
               <div className="flex gap-2">
-                <Input placeholder="Add tag" value={newTag} onChange={e => setNewTag(e.target.value)}
+                <Input placeholder={t('habits.tagPlaceholder')} value={newTag} onChange={e => setNewTag(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
                   className="bg-secondary/50 border-0 h-9" />
                 <Button variant="ghost" size="icon" onClick={addTag} disabled={!newTag.trim()} className="h-9 w-9 shrink-0">
@@ -272,12 +273,12 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
             {/* Group */}
             {groups.length > 0 && (
               <div className="space-y-3">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Group</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.group')}</Label>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setGroupId(null)}
                     className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                       !groupId ? 'bg-secondary ring-1 ring-border text-foreground' : 'bg-secondary/50 text-muted-foreground'
-                    )}>None</button>
+                    )}>{t('common.none')}</button>
                   {groups.map(g => (
                     <button key={g.id} onClick={() => setGroupId(g.id)}
                       className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
@@ -324,17 +325,17 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 gap-2 text-sm">
-                    <Trash2 className="w-4 h-4" /> Delete this habit
+                    <Trash2 className="w-4 h-4" /> {t('habits.deleteHabit')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete habit?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete this habit and all its data. This action cannot be undone.</AlertDialogDescription>
+                    <AlertDialogTitle>{t('habits.deleteHabitConfirm')}</AlertDialogTitle>
+                    <AlertDialogDescription>{t('habits.deleteHabitWarning')}</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -346,7 +347,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
         <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-border bg-background">
           <Button onClick={handleSave} disabled={!title.trim() || saving}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
-            {saving ? 'Saving...' : 'Save changes'}
+            {saving ? t('common.saving') : t('common.saveChanges')}
           </Button>
         </div>
       </SheetContent>

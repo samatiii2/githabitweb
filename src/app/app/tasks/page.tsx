@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useT } from '@/lib/i18n/provider'
 import { useTasksStore, type SmartView, type SortBy, type GroupBy } from '@/lib/store/tasks-store'
 import { TaskDetailSheet } from '@/components/tasks/task-detail-sheet'
 import { TaskInlineForm } from '@/components/tasks/task-inline-form'
@@ -69,32 +70,33 @@ function formatDueDate(d: string): string {
   return format(parseDueDate(d), 'MMM d')
 }
 
-// ─── Smart view configuration ─────────────────────────────
-const SMART_VIEWS = [
-  { id: 'inbox' as SmartView, label: 'Inbox', icon: Inbox, desc: 'Active tasks' },
-  { id: 'today' as SmartView, label: 'Today', icon: CalendarDays, desc: 'Due today + overdue' },
-  { id: 'upcoming' as SmartView, label: 'Upcoming', icon: CalendarRange, desc: 'Next 7 days' },
-  { id: 'all' as SmartView, label: 'All tasks', icon: ListChecks, desc: 'Everything' },
-  { id: 'completed' as SmartView, label: 'Completed', icon: CheckCircle2, desc: 'Done tasks' },
-]
-
-const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-  { value: 'priority', label: 'Priority' },
-  { value: 'due_date', label: 'Due date' },
-  { value: 'created_at', label: 'Created' },
-  { value: 'title', label: 'Alphabetical' },
-]
-
-const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
-  { value: 'none', label: 'No grouping' },
-  { value: 'status', label: 'By status' },
-  { value: 'priority', label: 'By priority' },
-  { value: 'due_date', label: 'By due date' },
-]
-
 // ─── Main page ────────────────────────────────────────────
 export default function TasksPage() {
+  const t = useT()
   const store = useTasksStore()
+
+  // ─── Smart view configuration ─────────────────────────────
+  const SMART_VIEWS = useMemo(() => [
+    { id: 'inbox' as SmartView, label: t('tasks.inbox'), icon: Inbox, desc: t('tasks.inboxDesc') },
+    { id: 'today' as SmartView, label: t('tasks.todayView'), icon: CalendarDays, desc: t('tasks.todayDesc') },
+    { id: 'upcoming' as SmartView, label: t('tasks.upcoming'), icon: CalendarRange, desc: t('tasks.upcomingDesc') },
+    { id: 'all' as SmartView, label: t('tasks.allTasks'), icon: ListChecks, desc: t('tasks.allDesc') },
+    { id: 'completed' as SmartView, label: t('tasks.completedView'), icon: CheckCircle2, desc: t('tasks.completedDesc') },
+  ], [t])
+
+  const SORT_OPTIONS: { value: SortBy; label: string }[] = useMemo(() => [
+    { value: 'priority', label: t('tasks.sortPriority') },
+    { value: 'due_date', label: t('tasks.sortDueDate') },
+    { value: 'created_at', label: t('tasks.sortCreated') },
+    { value: 'title', label: t('tasks.sortAlphabetical') },
+  ], [t])
+
+  const GROUP_OPTIONS: { value: GroupBy; label: string }[] = useMemo(() => [
+    { value: 'none', label: t('tasks.noGrouping') },
+    { value: 'status', label: t('tasks.byStatus') },
+    { value: 'priority', label: t('tasks.byPriority') },
+    { value: 'due_date', label: t('tasks.byDueDate') },
+  ], [t])
   const {
     tasks, projects, labels, loading,
     smartView, viewMode, searchQuery, sortBy, sortDirection, groupBy, priorityFilter,
@@ -214,7 +216,7 @@ export default function TasksPage() {
       switch (groupBy) {
         case 'status':
           key = task.status
-          label = { todo: 'To Do', doing: 'In Progress', done: 'Done' }[task.status]
+          label = { todo: t('tasks.statusTodo'), doing: t('tasks.statusDoing'), done: t('tasks.statusDone') }[task.status]
           color = { todo: '#71717a', doing: '#60a5fa', done: '#3DD68C' }[task.status]
           order = { todo: 0, doing: 1, done: 2 }[task.status]
           break
@@ -225,12 +227,12 @@ export default function TasksPage() {
           order = task.priority
           break
         case 'due_date':
-          if (!task.due_date) { key = 'no-date'; label = 'No date'; order = 99 }
-          else if (isDueOverdue(task.due_date)) { key = 'overdue'; label = 'Overdue'; color = '#ef4444'; order = 0 }
-          else if (isDueToday(task.due_date)) { key = 'today'; label = 'Today'; color = '#3DD68C'; order = 1 }
-          else if (isDueTomorrow(task.due_date)) { key = 'tomorrow'; label = 'Tomorrow'; color = '#60a5fa'; order = 2 }
-          else if (isDueThisWeek(task.due_date)) { key = 'this-week'; label = 'This week'; color = '#a78bfa'; order = 3 }
-          else { key = 'later'; label = 'Later'; color = '#fbbf24'; order = 4 }
+          if (!task.due_date) { key = 'no-date'; label = t('tasks.noDate'); order = 99 }
+          else if (isDueOverdue(task.due_date)) { key = 'overdue'; label = t('tasks.overdue'); color = '#ef4444'; order = 0 }
+          else if (isDueToday(task.due_date)) { key = 'today'; label = t('tasks.todayView'); color = '#3DD68C'; order = 1 }
+          else if (isDueTomorrow(task.due_date)) { key = 'tomorrow'; label = t('tasks.tomorrow'); color = '#60a5fa'; order = 2 }
+          else if (isDueThisWeek(task.due_date)) { key = 'this-week'; label = t('tasks.thisWeek'); color = '#a78bfa'; order = 3 }
+          else { key = 'later'; label = t('tasks.later'); color = '#fbbf24'; order = 4 }
           break
         default:
           key = 'all'; label = ''; order = 0
@@ -245,10 +247,10 @@ export default function TasksPage() {
 
   // ─── Board columns ──────────────────────────────────────
   const boardColumns = useMemo(() => [
-    { title: 'To Do', status: 'todo' as const, tasks: sortedTasks.filter(t => t.status === 'todo'), color: '#71717a', icon: Circle },
-    { title: 'In Progress', status: 'doing' as const, tasks: sortedTasks.filter(t => t.status === 'doing'), color: '#60a5fa', icon: ArrowRightCircle },
-    { title: 'Done', status: 'done' as const, tasks: sortedTasks.filter(t => t.status === 'done'), color: '#3DD68C', icon: CheckCircle2 },
-  ], [sortedTasks])
+    { title: t('tasks.statusTodo'), status: 'todo' as const, tasks: sortedTasks.filter(tk => tk.status === 'todo'), color: '#71717a', icon: Circle },
+    { title: t('tasks.statusDoing'), status: 'doing' as const, tasks: sortedTasks.filter(tk => tk.status === 'doing'), color: '#60a5fa', icon: ArrowRightCircle },
+    { title: t('tasks.statusDone'), status: 'done' as const, tasks: sortedTasks.filter(tk => tk.status === 'done'), color: '#3DD68C', icon: CheckCircle2 },
+  ], [sortedTasks, t])
 
   // ─── Inline form submit ─────────────────────────────────
   const handleInlineCreate = async (data: {
@@ -321,27 +323,27 @@ export default function TasksPage() {
   // Determine the current view label + description
   const currentView = SMART_VIEWS.find(v => v.id === smartView)
   const currentViewLabel = selectedProjectId
-    ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+    ? projects.find(p => p.id === selectedProjectId)?.name ?? t('tasks.projects')
     : selectedLabelId
-      ? labels.find(l => l.id === selectedLabelId)?.name ?? 'Label'
-      : currentView?.label ?? 'Tasks'
+      ? labels.find(l => l.id === selectedLabelId)?.name ?? t('tasks.labelsNav')
+      : currentView?.label ?? t('tasks.tasks')
   const currentViewDesc = selectedProjectId
-    ? `${filteredTasks.length} tasks in project`
+    ? t('tasks.tasksInProject', { count: filteredTasks.length })
     : selectedLabelId
-      ? `${filteredTasks.length} tasks with label`
+      ? t('tasks.tasksWithLabel', { count: filteredTasks.length })
       : currentView?.desc ?? ''
 
   // Smart view empty state messages
   const emptyMessage = (() => {
-    if (searchQuery) return { title: 'No results', desc: 'Try a different search term.' }
-    if (selectedProjectId) return { title: 'No tasks in this project', desc: 'Assign tasks to this project from the task detail panel.' }
-    if (selectedLabelId) return { title: 'No tasks with this label', desc: 'Assign labels to tasks from the task detail panel.' }
+    if (searchQuery) return { title: t('common.noResults'), desc: t('tasks.noResultsDesc') }
+    if (selectedProjectId) return { title: t('tasks.noProjectTasks'), desc: t('tasks.noProjectTasksDesc') }
+    if (selectedLabelId) return { title: t('tasks.noLabelTasks'), desc: t('tasks.noLabelTasksDesc') }
     switch (smartView) {
-      case 'today': return { title: 'Nothing due today', desc: 'Tasks due today or overdue will appear here. Create a task with today\'s date.' }
-      case 'upcoming': return { title: 'Nothing upcoming', desc: 'Tasks due in the next 7 days will appear here.' }
-      case 'completed': return { title: 'No completed tasks', desc: 'Completed tasks will appear here.' }
-      case 'all': return { title: 'No tasks yet', desc: 'Create your first task to get started.' }
-      default: return { title: 'No active tasks', desc: 'Create a task with the quick add bar above or the "New task" button.' }
+      case 'today': return { title: t('tasks.noDueToday'), desc: t('tasks.noDueTodayDesc') }
+      case 'upcoming': return { title: t('tasks.noUpcoming'), desc: t('tasks.noUpcomingDesc') }
+      case 'completed': return { title: t('tasks.noCompleted'), desc: t('tasks.noCompletedDesc') }
+      case 'all': return { title: t('tasks.noTasksYet'), desc: t('tasks.noTasksYetDesc') }
+      default: return { title: t('tasks.noActiveTasks'), desc: t('tasks.noActiveTasksDesc') }
     }
   })()
 
@@ -351,7 +353,7 @@ export default function TasksPage() {
       <aside className="hidden lg:flex flex-col border-r border-border bg-sidebar shrink-0 w-[220px] overflow-y-auto">
         {/* Smart views */}
         <div className="px-3 pt-4 pb-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">Views</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">{t('tasks.views')}</p>
           <div className="space-y-0.5">
             {SMART_VIEWS.map(view => {
               const Icon = view.icon
@@ -389,7 +391,7 @@ export default function TasksPage() {
         {/* Projects */}
         <div className="px-3 pt-3 pb-2">
           <div className="flex items-center justify-between px-2 mb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Projects</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.projects')}</p>
             <button onClick={() => setCreateProjectOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors">
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -422,7 +424,7 @@ export default function TasksPage() {
             })}
             {projects.length === 0 && (
               <button onClick={() => setCreateProjectOpen(true)} className="text-[11px] text-muted-foreground hover:text-foreground px-2.5 py-1 transition-colors">
-                + Create a project
+                + {t('tasks.createProject')}
               </button>
             )}
           </div>
@@ -431,7 +433,7 @@ export default function TasksPage() {
         {/* Labels */}
         <div className="px-3 pt-3 pb-4">
           <div className="flex items-center justify-between px-2 mb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Labels</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.labelsNav')}</p>
             <button onClick={() => setCreateLabelOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors">
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -455,7 +457,7 @@ export default function TasksPage() {
             })}
             {labels.length === 0 && (
               <button onClick={() => setCreateLabelOpen(true)} className="text-[11px] text-muted-foreground hover:text-foreground px-2.5 py-1 transition-colors">
-                + Create a label
+                + {t('tasks.createLabel')}
               </button>
             )}
           </div>
@@ -476,7 +478,7 @@ export default function TasksPage() {
                 onClick={() => setShowInlineForm(true)}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 font-semibold text-xs h-8 shadow-lg shadow-primary/10"
               >
-                <Plus className="w-3.5 h-3.5" /> Add task
+                <Plus className="w-3.5 h-3.5" /> {t('tasks.addTask')}
               </Button>
             )}
           </div>
@@ -505,7 +507,7 @@ export default function TasksPage() {
             <div className="relative flex-1 min-w-[140px] max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder={t('tasks.search')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="pl-8 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-8 text-xs"
@@ -517,12 +519,12 @@ export default function TasksPage() {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-all">
                   <ArrowUpDown className="w-3.5 h-3.5" />
-                  <span>Sort: <span className="text-foreground font-medium">{SORT_OPTIONS.find(o => o.value === sortBy)?.label}</span></span>
+                  <span>{t('tasks.sort')}: <span className="text-foreground font-medium">{SORT_OPTIONS.find(o => o.value === sortBy)?.label}</span></span>
                   <span className="text-[10px] opacity-60">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-40">
-                <DropdownMenuLabel className="text-[10px]">Sort by</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-[10px]">{t('tasks.sortBy')}</DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={sortBy} onValueChange={v => setSortBy(v as SortBy)}>
                   {SORT_OPTIONS.map(o => (
                     <DropdownMenuRadioItem key={o.value} value={o.value} className="text-xs">{o.label}</DropdownMenuRadioItem>
@@ -530,8 +532,8 @@ export default function TasksPage() {
                 </DropdownMenuRadioGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={sortDirection} onValueChange={v => setSortDirection(v as 'asc' | 'desc')}>
-                  <DropdownMenuRadioItem value="asc" className="text-xs">Ascending ↑</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="desc" className="text-xs">Descending ↓</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="asc" className="text-xs">{t('tasks.ascending')} ↑</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="desc" className="text-xs">{t('tasks.descending')} ↓</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -544,7 +546,7 @@ export default function TasksPage() {
                   groupBy !== 'none' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 )}>
                   <Group className="w-3.5 h-3.5" />
-                  <span>Group: <span className="font-medium">{groupBy === 'none' ? 'Off' : GROUP_OPTIONS.find(o => o.value === groupBy)?.label}</span></span>
+                  <span>{t('tasks.groupLabel')}: <span className="font-medium">{groupBy === 'none' ? t('tasks.groupOff') : GROUP_OPTIONS.find(o => o.value === groupBy)?.label}</span></span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-40">
@@ -563,7 +565,7 @@ export default function TasksPage() {
                   'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all',
                   priorityFilter.length > 0 ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 )}>
-                  <Flag className="w-3.5 h-3.5" /> Priority
+                  <Flag className="w-3.5 h-3.5" /> {t('tasks.priorityLabel')}
                   {priorityFilter.length > 0 && <span className="ml-0.5">({priorityFilter.length})</span>}
                 </button>
               </DropdownMenuTrigger>
@@ -588,7 +590,7 @@ export default function TasksPage() {
                   <>
                     <div className="border-t border-border my-1" />
                     <button onClick={() => setPriorityFilter([])} className="w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors">
-                      Clear
+                      {t('common.clear')}
                     </button>
                   </>
                 )}
@@ -630,7 +632,7 @@ export default function TasksPage() {
               className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors group text-sm"
             >
               <Plus className="w-4 h-4 group-hover:text-primary transition-colors" />
-              <span>Add task</span>
+              <span>{t('tasks.addTask')}</span>
             </button>
           )}
         </div>
@@ -733,7 +735,7 @@ export default function TasksPage() {
                       ))}
                       {col.tasks.length === 0 && (
                         <div className="flex items-center justify-center h-16 text-[11px] text-muted-foreground">
-                          No tasks
+                          {t('tasks.noTasks')}
                         </div>
                       )}
                     </div>
@@ -777,23 +779,23 @@ export default function TasksPage() {
       {/* ═══ Create Project Dialog ═══ */}
       <Dialog open={createProjectOpen} onOpenChange={setCreateProjectOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Create project</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('tasks.createProjectTitle')}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             {/* Preview */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${newProjectColor}15` }}>
                 <DynamicIcon name={newProjectIcon} className="w-5 h-5" style={{ color: newProjectColor }} />
               </div>
-              <span className="font-semibold text-sm">{newProjectName || 'Project name'}</span>
+              <span className="font-semibold text-sm">{newProjectName || t('tasks.projectName')}</span>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
-              <Input placeholder="e.g. Work, Personal..." value={newProjectName} onChange={e => setNewProjectName(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.nameLabel')}</Label>
+              <Input placeholder={t('tasks.projectNamePlaceholder')} value={newProjectName} onChange={e => setNewProjectName(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Icon</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.iconLabel')}</Label>
               <div className="grid grid-cols-8 gap-1.5 max-h-[140px] overflow-y-auto p-1">
                 {PROJECT_ICONS.map(icon => (
                   <button key={icon} onClick={() => setNewProjectIcon(icon)}
@@ -812,7 +814,7 @@ export default function TasksPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Color</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.colorLabel')}</Label>
               <div className="flex flex-wrap gap-2">
                 {COLORS.map(c => (
                   <button key={c} onClick={() => setNewProjectColor(c)}
@@ -823,7 +825,7 @@ export default function TasksPage() {
             </div>
 
             <Button onClick={handleCreateProject} disabled={!newProjectName.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
-              Create project
+              {t('tasks.createProjectTitle')}
             </Button>
           </div>
         </DialogContent>
@@ -832,14 +834,14 @@ export default function TasksPage() {
       {/* ═══ Create Label Dialog ═══ */}
       <Dialog open={createLabelOpen} onOpenChange={setCreateLabelOpen}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Create label</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('tasks.createLabelTitle')}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
-              <Input placeholder="e.g. Urgent, Design, Bug..." value={newLabelName} onChange={e => setNewLabelName(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.nameLabel')}</Label>
+              <Input placeholder={t('tasks.labelNamePlaceholder')} value={newLabelName} onChange={e => setNewLabelName(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Color</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.colorLabel')}</Label>
               <div className="flex flex-wrap gap-2">
                 {COLORS.map(c => (
                   <button key={c} onClick={() => setNewLabelColor(c)}
@@ -849,7 +851,7 @@ export default function TasksPage() {
               </div>
             </div>
             <Button onClick={handleCreateLabel} disabled={!newLabelName.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
-              Create label
+              {t('tasks.createLabelTitle')}
             </Button>
           </div>
         </DialogContent>
@@ -858,23 +860,23 @@ export default function TasksPage() {
       {/* ═══ Edit Project Dialog ═══ */}
       <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Edit project</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('tasks.editProject')}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             {/* Preview */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${editProjectColor}15` }}>
                 <DynamicIcon name={editProjectIcon} className="w-5 h-5" style={{ color: editProjectColor }} />
               </div>
-              <span className="font-semibold text-sm">{editProjectName || 'Project name'}</span>
+              <span className="font-semibold text-sm">{editProjectName || t('tasks.projectName')}</span>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
-              <Input placeholder="e.g. Work, Personal..." value={editProjectName} onChange={e => setEditProjectName(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.nameLabel')}</Label>
+              <Input placeholder={t('tasks.projectNamePlaceholder')} value={editProjectName} onChange={e => setEditProjectName(e.target.value)} autoFocus className="bg-secondary/50 border-0 h-10" />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Icon</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.iconLabel')}</Label>
               <div className="grid grid-cols-8 gap-1.5 max-h-[140px] overflow-y-auto p-1">
                 {PROJECT_ICONS.map(icon => (
                   <button key={icon} onClick={() => setEditProjectIcon(icon)}
@@ -893,7 +895,7 @@ export default function TasksPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Color</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.colorLabel')}</Label>
               <div className="flex flex-wrap gap-2">
                 {COLORS.map(c => (
                   <button key={c} onClick={() => setEditProjectColor(c)}
@@ -904,7 +906,7 @@ export default function TasksPage() {
             </div>
 
             <Button onClick={handleSaveProject} disabled={!editProjectName.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
-              Save changes
+              {t('common.saveChanges')}
             </Button>
           </div>
         </DialogContent>
@@ -914,8 +916,6 @@ export default function TasksPage() {
 }
 
 // ─── Calendar View Component ──────────────────────────────
-const WEEKDAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
 function CalendarView({
   tasks, month, setMonth, selectedDay, onSelectDay, onSelectTask, selectedTaskId, getLabelsForTask,
 }: {
@@ -928,6 +928,11 @@ function CalendarView({
   selectedTaskId: string | null
   getLabelsForTask: (id: string) => { id: string; name: string; color_hex: string }[]
 }) {
+  const t = useT()
+  const WEEKDAY_HEADERS = useMemo(() => [
+    t('tasks.weekMon'), t('tasks.weekTue'), t('tasks.weekWed'), t('tasks.weekThu'),
+    t('tasks.weekFri'), t('tasks.weekSat'), t('tasks.weekSun'),
+  ], [t])
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const mStart = startOfMonth(month)
   const mEnd = endOfMonth(month)
@@ -963,7 +968,7 @@ function CalendarView({
             onClick={() => { setMonth(new Date()); onSelectDay(todayStr) }}
             className="text-[10px] text-primary hover:underline font-medium"
           >
-            Today
+            {t('tasks.todayView')}
           </button>
         </div>
         <button
@@ -1033,7 +1038,7 @@ function CalendarView({
                   </div>
                 ))}
                 {dayTasks.length > 3 && (
-                  <span className="text-[9px] text-muted-foreground px-1">+{dayTasks.length - 3} more</span>
+                  <span className="text-[9px] text-muted-foreground px-1">{t('tasks.moreCount', { count: dayTasks.length - 3 })}</span>
                 )}
               </div>
             </button>
@@ -1049,7 +1054,7 @@ function CalendarView({
               {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d')}
             </h3>
             <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-              {selectedDayTasks.length} task{selectedDayTasks.length !== 1 ? 's' : ''}
+              {t('tasks.taskCount', { count: selectedDayTasks.length })}
             </span>
           </div>
           {selectedDayTasks.length > 0 ? (
@@ -1085,7 +1090,7 @@ function CalendarView({
             </div>
           ) : (
             <div className="px-4 py-8 text-center text-xs text-muted-foreground">
-              No tasks for this day
+              {t('tasks.noTasksForDay')}
             </div>
           )}
         </div>
@@ -1107,6 +1112,7 @@ function TaskRow({
   onSelect: () => void
   onDelete: () => void
 }) {
+  const t = useT()
   const isOverdue = task.due_date && isDueOverdue(task.due_date) && !task.is_completed
 
   return (
@@ -1139,7 +1145,7 @@ function TaskRow({
             <span className={cn('text-[10px] flex items-center gap-1', isOverdue ? 'text-red-400' : isDueToday(task.due_date) ? 'text-primary' : 'text-muted-foreground')}>
               <Clock className="w-3 h-3" />
               {isOverdue && <AlertCircle className="w-2.5 h-2.5" />}
-              {isDueToday(task.due_date) ? 'Today' : isDueTomorrow(task.due_date) ? 'Tomorrow' : formatDueDate(task.due_date)}
+              {isDueToday(task.due_date) ? t('tasks.todayView') : isDueTomorrow(task.due_date) ? t('tasks.tomorrow') : formatDueDate(task.due_date)}
             </span>
           )}
           {task.recurrence !== 'none' && (

@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { calculateStreak } from '@/lib/utils/stats'
+import { useT } from '@/lib/i18n/provider'
 
 export default function DashboardPage() {
   const {
@@ -28,6 +29,7 @@ export default function DashboardPage() {
     toggleEntry, upsertEntry
   } = useHabitsStore()
 
+  const t = useT()
   const [createOpen, setCreateOpen] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [sessionPicker, setSessionPicker] = useState<{ habitId: string; date: string } | null>(null)
@@ -106,9 +108,9 @@ export default function DashboardPage() {
 
   const greeting = (() => {
     const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 17) return 'Good afternoon'
-    return 'Good evening'
+    if (hour < 12) return t('habits.goodMorning')
+    if (hour < 17) return t('habits.goodAfternoon')
+    return t('habits.goodEvening')
   })()
 
   return (
@@ -126,7 +128,7 @@ export default function DashboardPage() {
           className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-semibold shadow-lg shadow-primary/10"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">New habit</span>
+          <span className="hidden sm:inline">{t('habits.newHabit')}</span>
         </Button>
       </div>
 
@@ -138,10 +140,10 @@ export default function DashboardPage() {
             className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-1 py-1"
           >
             {showStats ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            {showStats ? 'Hide statistics' : 'Show statistics'}
+            {showStats ? t('habits.hideStats') : t('habits.showStats')}
             {!showStats && (
               <span className="text-[10px] ml-1 opacity-60">
-                — {completedToday}/{filteredHabits.length} today · {completionPercent}%
+                — {completedToday}/{filteredHabits.length} {t('common.today').toLowerCase()} · {completionPercent}%
               </span>
             )}
           </button>
@@ -150,7 +152,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mt-2">
               <div className="card-elevated rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Today</span>
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('common.today')}</span>
                   <Target className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex items-baseline gap-1">
@@ -162,7 +164,7 @@ export default function DashboardPage() {
 
               <div className="card-elevated rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Completion</span>
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('landing.completionRate')}</span>
                   <TrendingUp className="w-4 h-4 text-blue-400" />
                 </div>
                 <div className="flex items-baseline gap-1">
@@ -176,7 +178,7 @@ export default function DashboardPage() {
 
               <div className="card-elevated rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Best Streak</span>
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('habits.bestStreak')}</span>
                   <Flame className="w-4 h-4 text-orange-400" />
                 </div>
                 <div className="flex items-baseline gap-1">
@@ -187,12 +189,12 @@ export default function DashboardPage() {
 
               <div className="card-elevated rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Habits</span>
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('habits.habits')}</span>
                   <Sparkles className="w-4 h-4 text-purple-400" />
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl font-bold">{filteredHabits.length}</span>
-                  <span className="text-sm text-muted-foreground">active</span>
+                  <span className="text-sm text-muted-foreground">{t('habits.active')}</span>
                 </div>
               </div>
             </div>
@@ -205,7 +207,7 @@ export default function DashboardPage() {
         <div className="relative flex-1 w-full lg:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search habits..."
+            placeholder={t('habits.searchHabits')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-9"
@@ -250,9 +252,9 @@ export default function DashboardPage() {
           {/* View mode - segmented control */}
           <div className="flex items-center bg-secondary/80 rounded-lg p-0.5 border border-border/50">
             {([
-              { mode: 'heatmap' as const, icon: Grid3X3, label: 'Year' },
-              { mode: 'month' as const, icon: CalendarDays, label: 'Month' },
-              { mode: 'list' as const, icon: List, label: 'List' },
+              { mode: 'heatmap' as const, icon: Grid3X3, label: t('habits.year') },
+              { mode: 'month' as const, icon: CalendarDays, label: t('habits.month') },
+              { mode: 'list' as const, icon: List, label: t('habits.list') },
             ]).map(({ mode, icon: Icon, label }) => (
               <button
                 key={mode}
@@ -281,12 +283,12 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2">
             <p className="font-semibold text-lg">
-              {searchQuery ? 'No habits match your search' : 'No habits yet'}
+              {searchQuery ? t('habits.noMatch') : t('habits.noHabitsTitle')}
             </p>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               {searchQuery
-                ? 'Try a different search term.'
-                : 'Create your first habit to start tracking your daily progress and building consistency.'
+                ? t('common.tryDifferentSearch')
+                : t('habits.noHabitsDesc')
               }
             </p>
           </div>
@@ -295,7 +297,7 @@ export default function DashboardPage() {
               onClick={() => setCreateOpen(true)}
               className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 mt-2"
             >
-              <Plus className="w-4 h-4" /> Create first habit
+              <Plus className="w-4 h-4" /> {t('habits.createFirst')}
             </Button>
           )}
         </div>

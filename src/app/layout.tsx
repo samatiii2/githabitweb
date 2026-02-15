@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LocaleProvider } from "@/lib/i18n/provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "giHabit - Build Better Habits",
-  description: "Track your habits with a beautiful GitHub-style heatmap. Manage tasks, set challenges, and build consistency. Free, works on any device.",
+  description: "Track your habits with beautiful visual heatmaps. Manage tasks, set challenges, and build consistency. Free, works on any device.",
   manifest: "/manifest.json",
 };
 
@@ -34,12 +35,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" dir="ltr" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <ThemeProvider>
-          {children}
+          <LocaleProvider>
+            {children}
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

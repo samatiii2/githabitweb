@@ -6,6 +6,7 @@ import { DynamicIcon } from '@/components/dynamic-icon'
 import { cn } from '@/lib/utils'
 import { CheckCircle2 } from 'lucide-react'
 import { startOfWeek, endOfWeek, format } from 'date-fns'
+import { useT } from '@/lib/i18n/provider'
 import type { Habit, HabitEntry, HabitSession } from '@/lib/types/database'
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function SessionPickerDialog({ open, onOpenChange, habit, entries, date, onSelectSession }: Props) {
+  const t = useT()
   const sessions = (habit.sessions as HabitSession[]) ?? []
 
   // Get the week boundaries (Mon–Sun) for the target date
@@ -76,7 +78,7 @@ export function SessionPickerDialog({ open, onOpenChange, habit, entries, date, 
           {/* Progress */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Weekly progress</span>
+              <span className="text-muted-foreground">{t('habits.weeklyProgress')}</span>
               <span className="font-semibold" style={{ color: allDone ? habit.color_hex : undefined }}>
                 {completedCount}/{totalSessions}
               </span>
@@ -95,7 +97,7 @@ export function SessionPickerDialog({ open, onOpenChange, habit, entries, date, 
           {/* Session list */}
           <div className="space-y-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {allDone ? 'All sessions completed this week!' : 'What did you do today?'}
+              {allDone ? t('habits.allSessionsCompleted') : t('habits.whatDidYouDo')}
             </p>
             <div className="space-y-1">
               {sessions.map((session, idx) => {
@@ -137,7 +139,7 @@ export function SessionPickerDialog({ open, onOpenChange, habit, entries, date, 
                       </p>
                       {isDone && completed && (
                         <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Done on {format(new Date(completed.date + 'T12:00:00'), 'EEEE')}
+                          {t('habits.doneOn', { day: format(new Date(completed.date + 'T12:00:00'), 'EEEE') })}
                         </p>
                       )}
                     </div>
@@ -151,10 +153,10 @@ export function SessionPickerDialog({ open, onOpenChange, habit, entries, date, 
           {allDone && (
             <div className="text-center py-2">
               <p className="text-sm font-medium" style={{ color: habit.color_hex }}>
-                🎉 Week complete!
+                🎉 {t('habits.weekComplete')}
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                All sessions done. You can still log an extra entry.
+                {t('habits.weekCompleteDesc')}
               </p>
             </div>
           )}

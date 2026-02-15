@@ -11,6 +11,7 @@ import { DynamicIcon } from '@/components/dynamic-icon'
 import { useHabitsStore } from '@/lib/store/habits-store'
 import { Plus, X, Sparkles, Dumbbell } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n/provider'
 import type { HabitSession } from '@/lib/types/database'
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function CreateHabitDialog({ open, onOpenChange }: Props) {
+  const t = useT()
   const { createHabit, groups } = useHabitsStore()
   const [title, setTitle] = useState('')
   const [iconName, setIconName] = useState('zap')
@@ -37,9 +39,9 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
   const [saving, setSaving] = useState(false)
 
   const addTag = () => {
-    const t = newTag.trim()
-    if (t && !tags.includes(t)) {
-      setTags([...tags, t])
+    const v = newTag.trim()
+    if (v && !tags.includes(v)) {
+      setTags([...tags, v])
       setNewTag('')
     }
   }
@@ -93,7 +95,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
         <SheetHeader className="px-6 py-4 border-b border-border">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Sparkles className="w-4 h-4 text-primary" />
-            New habit
+            {t('habits.newHabit')}
           </SheetTitle>
         </SheetHeader>
 
@@ -109,19 +111,19 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
               </div>
               <div className="flex-1">
                 <p className="font-semibold" style={{ color: title ? undefined : 'var(--muted-foreground)' }}>
-                  {title || 'Habit name'}
+                  {title || t('habits.habitName')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {frequency === 'daily' ? 'Daily' : `${weeklyTarget}x/week`} · {trackingType === 'boolean' ? 'Yes/No' : trackingType}
+                  {frequency === 'daily' ? 'Daily' : `${weeklyTarget}x/week`} · {trackingType === 'boolean' ? t('habits.yesNo') : trackingType}
                 </p>
               </div>
             </div>
 
             {/* Name */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.habitName')}</Label>
               <Input
-                placeholder="e.g. Meditation, Read 30min, Workout..."
+                placeholder={t('habits.habitNamePlaceholder')}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
@@ -131,7 +133,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
 
             {/* Frequency */}
             <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Frequency</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.frequency')}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {(['daily', 'weekly'] as const).map(f => (
                   <button
@@ -145,14 +147,14 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                     )}
                     style={frequency === f ? { backgroundColor: `${colorHex}12`, color: colorHex, boxShadow: `0 0 0 1px ${colorHex}30` } : undefined}
                   >
-                    {f === 'daily' ? 'Every day' : 'Weekly'}
+                    {f === 'daily' ? t('habits.daily') : t('habits.weekly')}
                   </button>
                 ))}
               </div>
               {frequency === 'weekly' && (
                 <>
                   <div className="flex items-center gap-2 pt-1">
-                    <span className="text-xs text-muted-foreground shrink-0">Days per week:</span>
+                    <span className="text-xs text-muted-foreground shrink-0">{t('habits.daysPerWeek')}:</span>
                     <div className="flex items-center gap-1.5">
                       {[1,2,3,4,5,6,7].map(n => (
                         <button
@@ -176,12 +178,11 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                       <div className="flex items-center gap-2">
                         <Dumbbell className="w-3.5 h-3.5 text-muted-foreground" />
                         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Sessions
+                          {t('habits.sessionsOptional')}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">(optional)</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        Name what you want to do on each day. When you check in, you&apos;ll pick which session you completed.
+                        {t('habits.sessionsDesc')}
                       </p>
                       {sessions.length > 0 && (
                         <div className="space-y-1">
@@ -202,7 +203,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                       {sessions.length < weeklyTarget && (
                         <div className="flex gap-2">
                           <Input
-                            placeholder={`Session ${sessions.length + 1} (e.g. Chest + Cardio)`}
+                            placeholder={t('habits.sessionPlaceholder', { n: sessions.length + 1 })}
                             value={newSessionLabel}
                             onChange={e => setNewSessionLabel(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSession())}
@@ -215,7 +216,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                       )}
                       {sessions.length >= weeklyTarget && (
                         <p className="text-[10px] text-muted-foreground text-center py-1">
-                          All {weeklyTarget} sessions defined ✓
+                          {t('habits.allSessionsDefined', { count: weeklyTarget })}
                         </p>
                       )}
                     </div>
@@ -226,40 +227,40 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
 
             {/* Tracking type */}
             <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tracking type</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.trackingType')}</Label>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { value: 'boolean', label: 'Yes / No', desc: 'Simple check' },
-                  { value: 'numeric', label: 'Number', desc: 'Count a value' },
-                  { value: 'timer', label: 'Timer', desc: 'Track duration' },
-                ] as const).map(t => (
+                  { value: 'boolean', label: t('habits.yesNo'), desc: t('habits.yesNoDesc') },
+                  { value: 'numeric', label: t('habits.number'), desc: t('habits.numberDesc') },
+                  { value: 'timer', label: t('habits.timer'), desc: t('habits.timerDesc') },
+                ] as const).map(opt => (
                   <button
-                    key={t.value}
-                    onClick={() => setTrackingType(t.value)}
+                    key={opt.value}
+                    onClick={() => setTrackingType(opt.value)}
                     className={cn(
                       'py-3 rounded-lg text-center border transition-all',
-                      trackingType === t.value
+                      trackingType === opt.value
                         ? 'border-transparent'
                         : 'border-border text-muted-foreground hover:text-foreground'
                     )}
-                    style={trackingType === t.value ? { backgroundColor: `${colorHex}12`, color: colorHex, boxShadow: `0 0 0 1px ${colorHex}30` } : undefined}
+                    style={trackingType === opt.value ? { backgroundColor: `${colorHex}12`, color: colorHex, boxShadow: `0 0 0 1px ${colorHex}30` } : undefined}
                   >
-                    <p className="text-sm font-medium">{t.label}</p>
-                    <p className="text-[10px] opacity-60 mt-0.5">{t.desc}</p>
+                    <p className="text-sm font-medium">{opt.label}</p>
+                    <p className="text-[10px] opacity-60 mt-0.5">{opt.desc}</p>
                   </button>
                 ))}
               </div>
               {trackingType === 'numeric' && (
                 <div className="flex gap-2 pt-1">
                   <Input
-                    placeholder="Target (e.g. 2000)"
+                    placeholder={t('habits.targetPlaceholder')}
                     value={targetValue}
                     onChange={e => setTargetValue(e.target.value)}
                     type="number"
                     className="bg-secondary/50 border-0 h-9"
                   />
                   <Input
-                    placeholder="Unit (e.g. ml)"
+                    placeholder={t('habits.unitPlaceholder')}
                     value={unit}
                     onChange={e => setUnit(e.target.value)}
                     className="w-28 bg-secondary/50 border-0 h-9"
@@ -268,7 +269,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
               )}
               {trackingType === 'timer' && (
                 <div className="flex items-center gap-3 pt-1">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">{targetMinutes} min</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">{targetMinutes} {t('habits.min')}</span>
                   <input
                     type="range"
                     min={5} max={120} step={5}
@@ -283,10 +284,10 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
 
             {/* Tags */}
             <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tags (optional)</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.tagsOptional')}</Label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="e.g. Morning routine, Health..."
+                  placeholder={t('habits.tagPlaceholder')}
                   value={newTag}
                   onChange={e => setNewTag(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
@@ -317,7 +318,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
             {/* Group */}
             {groups.length > 0 && (
               <div className="space-y-3">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Group</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.group')}</Label>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setGroupId(null)}
@@ -326,7 +327,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                       !groupId ? 'bg-secondary ring-1 ring-border text-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    None
+                    {t('common.none')}
                   </button>
                   {groups.map(g => (
                     <button
@@ -398,7 +399,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
             disabled={!title.trim() || saving}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10"
           >
-            {saving ? 'Creating...' : 'Create habit'}
+            {saving ? t('common.creating') : t('habits.createHabit')}
           </Button>
         </div>
       </SheetContent>
