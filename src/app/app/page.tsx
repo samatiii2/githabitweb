@@ -6,7 +6,6 @@ import { HabitHeatmapCard } from '@/components/habits/habit-heatmap-card'
 import { HabitListRow } from '@/components/habits/habit-list-row'
 import { CreateHabitDialog } from '@/components/habits/create-habit-dialog'
 import { HabitMonthCard } from '@/components/habits/habit-month-card'
-import { SessionPickerDialog } from '@/components/habits/session-picker-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -32,25 +31,22 @@ export default function DashboardPage() {
   const t = useT()
   const [createOpen, setCreateOpen] = useState(false)
   const [showStats, setShowStats] = useState(false)
-  const [sessionPicker, setSessionPicker] = useState<{ habitId: string; date: string } | null>(null)
 
-  // Smart toggle: if habit has sessions and no entry for the date, show session picker
+  // Simple toggle for boolean habits or cycling existing entries
   const handleToggle = (habitId: string, date?: string) => {
     const targetDate = date ?? todayDate
-    const habit = habits.find(h => h.id === habitId)
-    const dateEntry = entries.find(e => e.habit_id === habitId && e.date === targetDate)
-
-    if (habit?.sessions && (habit.sessions as any[]).length > 0 && !dateEntry) {
-      setSessionPicker({ habitId, date: targetDate })
-    } else {
-      toggleEntry(habitId, targetDate)
-    }
+    toggleEntry(habitId, targetDate)
   }
 
-  const handleSelectSession = (sessionId: string) => {
-    if (!sessionPicker) return
-    upsertEntry({ habit_id: sessionPicker.habitId, date: sessionPicker.date, status: 'completed', session_id: sessionId })
-    setSessionPicker(null)
+  // Unified submit from the popover (sessions, numeric, or both)
+  const handlePopoverSubmit = (habitId: string, date: string, opts: { sessionId?: string; value?: number }) => {
+    upsertEntry({
+      habit_id: habitId,
+      date,
+      status: 'completed',
+      value: opts.value ?? null,
+      session_id: opts.sessionId ?? null,
+    })
   }
 
   useEffect(() => {
@@ -314,6 +310,7 @@ export default function DashboardPage() {
               isCompletedToday={isCompletedToday(habit.id)}
               isSkippedToday={isSkippedToday(habit.id)}
               onToggle={() => handleToggle(habit.id)}
+              onSubmit={(opts) => handlePopoverSubmit(habit.id, todayDate, opts)}
             />
           ))}
         </div>
@@ -327,10 +324,13 @@ export default function DashboardPage() {
               key={habit.id}
               habit={habit}
               entries={entriesForHabit(habit.id)}
+              allEntries={entries}
               isCompletedToday={isCompletedToday(habit.id)}
               isSkippedToday={isSkippedToday(habit.id)}
               onToggle={() => handleToggle(habit.id)}
               onToggleDate={(dateStr) => handleToggle(habit.id, dateStr)}
+              onSubmit={(opts) => handlePopoverSubmit(habit.id, todayDate, opts)}
+              onSubmitDate={(date, opts) => handlePopoverSubmit(habit.id, date, opts)}
             />
           ))}
         </div>
@@ -344,10 +344,13 @@ export default function DashboardPage() {
               key={habit.id}
               habit={habit}
               entries={entriesForHabit(habit.id)}
+              allEntries={entries}
               isCompletedToday={isCompletedToday(habit.id)}
               isSkippedToday={isSkippedToday(habit.id)}
               onToggle={() => handleToggle(habit.id)}
               onToggleDate={(dateStr) => handleToggle(habit.id, dateStr)}
+              onSubmit={(opts) => handlePopoverSubmit(habit.id, todayDate, opts)}
+              onSubmitDate={(date, opts) => handlePopoverSubmit(habit.id, date, opts)}
             />
           ))}
         </div>
@@ -355,21 +358,8 @@ export default function DashboardPage() {
 
       <CreateHabitDialog open={createOpen} onOpenChange={setCreateOpen} />
 
-      {/* Session Picker Dialog */}
-      {sessionPicker && (() => {
-        const habit = habits.find(h => h.id === sessionPicker.habitId)
-        if (!habit) return null
-        return (
-          <SessionPickerDialog
-            open={true}
-            onOpenChange={(open) => { if (!open) setSessionPicker(null) }}
-            habit={habit}
-            entries={entries}
-            date={sessionPicker.date}
-            onSelectSession={handleSelectSession}
-          />
-        )
-      })()}
+
+
     </div>
   )
 }

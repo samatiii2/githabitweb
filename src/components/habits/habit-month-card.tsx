@@ -6,6 +6,7 @@ import { format, addMonths, subMonths } from 'date-fns'
 import type { Habit, HabitEntry } from '@/lib/types/database'
 import { MiniMonthCalendar } from '@/components/heatmap'
 import { HabitToggleButton } from './habit-toggle-button'
+import { NumericInputPopover } from './numeric-input-dialog'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { calculateStreak } from '@/lib/utils/stats'
 import { Flame, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -13,15 +14,19 @@ import { Flame, ChevronLeft, ChevronRight } from 'lucide-react'
 interface Props {
   habit: Habit
   entries: HabitEntry[]
+  allEntries?: HabitEntry[]
   isCompletedToday: boolean
   isSkippedToday: boolean
   onToggle: () => void
   onToggleDate: (dateStr: string) => void
+  onSubmit: (opts: { sessionId?: string; value?: number }) => void
+  onSubmitDate?: (date: string, opts: { sessionId?: string; value?: number }) => void
 }
 
-export function HabitMonthCard({ habit, entries, isCompletedToday, isSkippedToday, onToggle, onToggleDate }: Props) {
+export function HabitMonthCard({ habit, entries, allEntries, isCompletedToday, isSkippedToday, onToggle, onToggleDate, onSubmit, onSubmitDate }: Props) {
   const streak = useMemo(() => calculateStreak(entries), [entries])
   const [month, setMonth] = useState(new Date())
+  const todayDate = format(new Date(), 'yyyy-MM-dd')
 
   return (
     <div className="card-elevated rounded-xl p-3 transition-all duration-200 group hover:scale-[1.01]">
@@ -43,13 +48,22 @@ export function HabitMonthCard({ habit, entries, isCompletedToday, isSkippedToda
           </div>
         </Link>
         <div onClick={(e) => e.preventDefault()}>
-          <HabitToggleButton
-            colorHex={habit.color_hex}
-            isCompleted={isCompletedToday}
-            isSkipped={isSkippedToday}
-            onClick={onToggle}
-            size="sm"
-          />
+          <NumericInputPopover
+            habit={habit}
+            date={todayDate}
+            entries={allEntries ?? entries}
+            hasEntry={isCompletedToday || isSkippedToday}
+            onPassthrough={onToggle}
+            onSubmit={onSubmit}
+          >
+            <HabitToggleButton
+              colorHex={habit.color_hex}
+              isCompleted={isCompletedToday}
+              isSkipped={isSkippedToday}
+              onClick={onToggle}
+              size="sm"
+            />
+          </NumericInputPopover>
         </div>
       </div>
 
@@ -70,12 +84,15 @@ export function HabitMonthCard({ habit, entries, isCompletedToday, isSkippedToda
         </button>
       </div>
 
-      {/* Month calendar — tight SVG, cells fill edge to edge */}
+      {/* Month calendar */}
       <MiniMonthCalendar
         entries={entries}
         colorHex={habit.color_hex}
         month={month}
         onToggle={onToggleDate}
+        habit={habit}
+        allEntries={allEntries ?? entries}
+        onPopoverSubmit={onSubmitDate}
       />
     </div>
   )

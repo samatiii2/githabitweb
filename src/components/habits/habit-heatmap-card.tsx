@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { format } from 'date-fns'
 import type { Habit, HabitEntry } from '@/lib/types/database'
 import { Heatmap } from '@/components/heatmap'
 import { HabitToggleButton } from './habit-toggle-button'
+import { NumericInputPopover } from './numeric-input-dialog'
 import { HabitTagPills } from './habit-tag-pills'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { calculateStreak, calculateTotal } from '@/lib/utils/stats'
@@ -16,11 +18,13 @@ interface Props {
   isCompletedToday: boolean
   isSkippedToday: boolean
   onToggle: () => void
+  onSubmit: (opts: { sessionId?: string; value?: number }) => void
 }
 
-export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedToday, onToggle }: Props) {
+export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedToday, onToggle, onSubmit }: Props) {
   const streak = useMemo(() => calculateStreak(entries), [entries])
   const total = useMemo(() => calculateTotal(entries), [entries])
+  const todayDate = format(new Date(), 'yyyy-MM-dd')
 
   return (
     <div className="card-elevated rounded-xl p-5 transition-all duration-200 group">
@@ -47,12 +51,21 @@ export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedTo
           </div>
         </Link>
 
-        <HabitToggleButton
-          colorHex={habit.color_hex}
-          isCompleted={isCompletedToday}
-          isSkipped={isSkippedToday}
-          onClick={onToggle}
-        />
+        <NumericInputPopover
+          habit={habit}
+          date={todayDate}
+          entries={entries}
+          hasEntry={isCompletedToday || isSkippedToday}
+          onPassthrough={onToggle}
+          onSubmit={onSubmit}
+        >
+          <HabitToggleButton
+            colorHex={habit.color_hex}
+            isCompleted={isCompletedToday}
+            isSkipped={isSkippedToday}
+            onClick={onToggle}
+          />
+        </NumericInputPopover>
       </div>
 
       <HabitTagPills tags={habit.tags as string[]} colorHex={habit.color_hex} />

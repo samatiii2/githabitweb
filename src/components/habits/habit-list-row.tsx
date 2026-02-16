@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { Habit, HabitEntry } from '@/lib/types/database'
 import { HabitToggleButton } from './habit-toggle-button'
+import { NumericInputPopover } from './numeric-input-dialog'
 import { HabitTagPills } from './habit-tag-pills'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { getLastNDays, calculateStreak } from '@/lib/utils/stats'
@@ -13,13 +14,16 @@ import { ChevronRight, Flame } from 'lucide-react'
 interface Props {
   habit: Habit
   entries: HabitEntry[]
+  allEntries?: HabitEntry[]
   isCompletedToday: boolean
   isSkippedToday: boolean
   onToggle: () => void
   onToggleDate?: (dateStr: string) => void
+  onSubmit: (opts: { sessionId?: string; value?: number }) => void
+  onSubmitDate?: (date: string, opts: { sessionId?: string; value?: number }) => void
 }
 
-export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday, onToggle, onToggleDate }: Props) {
+export function HabitListRow({ habit, entries, allEntries, isCompletedToday, isSkippedToday, onToggle, onToggleDate, onSubmit, onSubmitDate }: Props) {
   const lastDays = getLastNDays(7)
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const streak = useMemo(() => calculateStreak(entries), [entries])
@@ -27,12 +31,21 @@ export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday,
   return (
     <div className="flex items-center gap-4 px-4 py-3 hover:bg-accent/50 transition-colors group">
       {/* Toggle */}
-      <HabitToggleButton
-        colorHex={habit.color_hex}
-        isCompleted={isCompletedToday}
-        isSkipped={isSkippedToday}
-        onClick={onToggle}
-      />
+      <NumericInputPopover
+        habit={habit}
+        date={todayStr}
+        entries={allEntries ?? entries}
+        hasEntry={isCompletedToday || isSkippedToday}
+        onPassthrough={onToggle}
+        onSubmit={onSubmit}
+      >
+        <HabitToggleButton
+          colorHex={habit.color_hex}
+          isCompleted={isCompletedToday}
+          isSkipped={isSkippedToday}
+          onClick={onToggle}
+        />
+      </NumericInputPopover>
 
       {/* Icon */}
       <div
@@ -55,18 +68,18 @@ export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday,
         <HabitTagPills tags={habit.tags as string[]} colorHex={habit.color_hex} max={3} compact />
       </Link>
 
-      {/* Last 7 days — clickable cells */}
+      {/* Last 7 days — clickable cells with popover */}
       <div className="hidden md:flex items-center gap-1 shrink-0">
         {lastDays.map(day => {
           const dateStr = format(day, 'yyyy-MM-dd')
           const entry = entries.find(e => e.date === dateStr)
           const completed = entry?.status === 'completed'
           const skipped = entry?.status === 'skipped'
+          const hasEntry = completed || skipped
           const isToday = dateStr === todayStr
 
-          return (
+          const cellButton = (
             <button
-              key={dateStr}
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -90,6 +103,26 @@ export function HabitListRow({ habit, entries, isCompletedToday, isSkippedToday,
             >
               {skipped && !completed ? '⏸' : ''}
             </button>
+          )
+
+          return (
+            <NumericInputPopover
+              key={dateStr}
+              habit={habit}
+              date={dateStr}
+              entries={allEntries ?? entries}
+              hasEntry={hasEntry}
+              onPassthrough={() => {
+                if (onToggleDate) onToggleDate(dateStr)
+                else if (isToday) onToggle()
+              }}
+              onSubmit={(opts) => {
+                if (onSubmitDate) onSubmitDate(dateStr, opts)
+                else if (isToday) onSubmit(opts)
+              }}
+            >
+              {cellButton}
+            </NumericInputPopover>
           )
         })}
       </div>

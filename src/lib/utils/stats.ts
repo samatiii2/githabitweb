@@ -101,6 +101,7 @@ export interface HeatmapDay {
   date: Date
   dateStr: string
   status: 'completed' | 'skipped' | 'none' | 'future'
+  value?: number | null
 }
 
 export function generateYearHeatmapData(entries: HabitEntry[], year?: number): HeatmapDay[] {
@@ -110,16 +111,40 @@ export function generateYearHeatmapData(entries: HabitEntry[], year?: number): H
   const end = endOfYear(new Date(y, 0, 1))
   const today = startOfDay(now)
 
-  const entryMap = new Map<string, string>()
-  entries.forEach(e => entryMap.set(e.date, e.status))
+  const entryMap = new Map<string, { status: string; value: number | null }>()
+  entries.forEach(e => entryMap.set(e.date, { status: e.status, value: e.value }))
 
   const days = eachDayOfInterval({ start, end })
   return days.map(date => {
     const dateStr = format(date, 'yyyy-MM-dd')
     const isFuture = date > today
-    const status = isFuture ? 'future' : (entryMap.get(dateStr) as 'completed' | 'skipped') ?? 'none'
-    return { date, dateStr, status }
+    const entry = entryMap.get(dateStr)
+    const status = isFuture ? 'future' : (entry?.status as 'completed' | 'skipped') ?? 'none'
+    return { date, dateStr, status, value: entry?.value ?? null }
   })
+}
+
+/**
+ * Calculate numeric stats for entries with values
+ */
+export function calculateNumericStats(entries: HabitEntry[], targetValue: number | null) {
+  const withValues = entries.filter(e => e.status === 'completed' && e.value != null)
+  if (withValues.length === 0) return null
+
+  const values = withValues.map(e => e.value!)
+  const avg = values.reduce((a, b) => a + b, 0) / values.length
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const onTarget = targetValue ? values.filter(v => v >= targetValue).length : values.length
+
+  return {
+    avg: Math.round(avg * 10) / 10,
+    min: Math.round(min * 10) / 10,
+    max: Math.round(max * 10) / 10,
+    onTarget,
+    total: withValues.length,
+    onTargetPct: Math.round((onTarget / withValues.length) * 100),
+  }
 }
 
 /**

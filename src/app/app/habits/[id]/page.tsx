@@ -9,13 +9,13 @@ import { HabitToggleButton } from '@/components/habits/habit-toggle-button'
 import { HabitTagPills } from '@/components/habits/habit-tag-pills'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { EditHabitDialog } from '@/components/habits/edit-habit-dialog'
-import { SessionPickerDialog } from '@/components/habits/session-picker-dialog'
+import { NumericInputPopover } from '@/components/habits/numeric-input-dialog'
 import { Button } from '@/components/ui/button'
 import {
   ArrowLeft, Settings, Flame, Trophy, CheckCircle, BarChart3,
   Grid3X3, CalendarDays, ChevronDown, ChevronUp
 } from 'lucide-react'
-import { calculateStreak, calculateBestStreak, calculateTotal, calculateRate, todayStr } from '@/lib/utils/stats'
+import { calculateStreak, calculateBestStreak, calculateTotal, calculateRate, calculateNumericStats, todayStr } from '@/lib/utils/stats'
 import { cn } from '@/lib/utils'
 
 export default function HabitDetailPage() {
@@ -27,24 +27,21 @@ export default function HabitDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'year' | 'month'>('year')
   const [showStats, setShowStats] = useState(false)
-  const [sessionPickerDate, setSessionPickerDate] = useState<string | null>(null)
 
-  // Smart toggle: if habit has sessions and no entry for the date, show picker
+  // Simple toggle for boolean habits or cycling existing entries
   const handleToggle = (date: string) => {
-    const habit = habits.find(h => h.id === habitId)
-    const dateEntry = entries.find(e => e.habit_id === habitId && e.date === date)
-
-    if (habit?.sessions && (habit.sessions as any[]).length > 0 && !dateEntry) {
-      setSessionPickerDate(date)
-    } else {
-      toggleEntry(habitId, date)
-    }
+    toggleEntry(habitId, date)
   }
 
-  const handleSelectSession = (sessionId: string) => {
-    if (!sessionPickerDate) return
-    upsertEntry({ habit_id: habitId, date: sessionPickerDate, status: 'completed', session_id: sessionId })
-    setSessionPickerDate(null)
+  // Unified submit from the popover
+  const handlePopoverSubmit = (date: string, opts: { sessionId?: string; value?: number }) => {
+    upsertEntry({
+      habit_id: habitId,
+      date,
+      status: 'completed',
+      value: opts.value ?? null,
+      session_id: opts.sessionId ?? null,
+    })
   }
 
   useEffect(() => {
@@ -63,6 +60,10 @@ export default function HabitDetailPage() {
   const bestStreak = useMemo(() => calculateBestStreak(habitEntries), [habitEntries])
   const total = useMemo(() => calculateTotal(habitEntries), [habitEntries])
   const rate = useMemo(() => calculateRate(habitEntries), [habitEntries])
+  const numericStats = useMemo(() =>
+    habit ? calculateNumericStats(habitEntries, habit.target_value) : null,
+    [habitEntries, habit]
+  )
 
   if (!habit) {
     return (
@@ -118,12 +119,21 @@ export default function HabitDetailPage() {
 
         {/* Today's toggle */}
         <div className="mt-4 flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
-          <HabitToggleButton
-            colorHex={habit.color_hex}
-            isCompleted={isCompletedToday}
-            isSkipped={isSkippedToday}
-            onClick={() => handleToggle(today)}
-          />
+          <NumericInputPopover
+            habit={habit}
+            date={today}
+            entries={entries}
+            hasEntry={isCompletedToday || isSkippedToday}
+            onPassthrough={() => handleToggle(today)}
+            onSubmit={(opts) => handlePopoverSubmit(today, opts)}
+          >
+            <HabitToggleButton
+              colorHex={habit.color_hex}
+              isCompleted={isCompletedToday}
+              isSkipped={isSkippedToday}
+              onClick={() => handleToggle(today)}
+            />
+          </NumericInputPopover>
           <div className="flex-1">
             <p className="text-sm font-medium">
               {isCompletedToday ? t('habits.completedToday') : isSkippedToday ? t('habits.skippedToday') : t('habits.notDoneYet')}
@@ -132,16 +142,22 @@ export default function HabitDetailPage() {
               {(() => {
                 if (isCompletedToday) {
                   const todayEntry = habitEntries.find(e => e.date === today && e.status === 'completed')
+                  const parts: string[] = []
                   const sessions = (habit.sessions as { id: string; label: string }[]) ?? []
                   if (todayEntry?.session_id && sessions.length > 0) {
                     const session = sessions.find(s => s.id === todayEntry.session_id)
-                    return session ? t('habits.sessionLabel', { label: session.label }) : t('habits.greatJob')
+                    if (session) parts.push(session.label)
                   }
-                  return t('habits.greatJob')
+                  if (todayEntry?.value != null && habit.tracking_type === 'numeric') {
+                    parts.push(`${todayEntry.value} ${habit.unit ?? ''}`.trim())
+                  }
+                  return parts.length > 0 ? parts.join(' · ') : t('habits.greatJob')
                 }
                 return habit.sessions && (habit.sessions as any[]).length > 0
                   ? t('habits.tapSession')
-                  : t('habits.tapDone')
+                  : habit.tracking_type === 'numeric'
+                    ? t('habits.enterYourValue')
+                    : t('habits.tapDone')
               })()}
             </p>
           </div>
@@ -165,18 +181,47 @@ export default function HabitDetailPage() {
         </button>
 
         {showStats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-            {stats.map(s => (
-              <div key={s.label} className="card-elevated rounded-xl p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: s.bg }}>
-                    <s.icon className="w-4 h-4" style={{ color: s.color }} />
+          <div className="space-y-3 mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {stats.map(s => (
+                <div key={s.label} className="card-elevated rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: s.bg }}>
+                      <s.icon className="w-4 h-4" style={{ color: s.color }} />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold tracking-tight">{s.value}{s.suffix}</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Numeric-specific stats */}
+            {habit.tracking_type === 'numeric' && numericStats && (
+              <div className="card-elevated rounded-xl p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  {t('habits.numericStats')} — {habit.unit ?? ''}
+                </p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xl font-bold" style={{ color: habit.color_hex }}>{numericStats.avg}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('habits.avgValue')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold">{numericStats.min} – {numericStats.max}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('habits.minValue')} / {t('habits.maxValue')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-emerald-500">{numericStats.onTargetPct}%</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('habits.daysOnTarget')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold">{numericStats.total}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('habits.totalDone')}</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold tracking-tight">{s.value}{s.suffix}</p>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">{s.label}</p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
@@ -217,13 +262,40 @@ export default function HabitDetailPage() {
             cellSize={16}
             gap={3}
             onToggle={(dateStr) => handleToggle(dateStr)}
+            targetValue={habit.target_value}
+            trackingType={habit.tracking_type}
+            unit={habit.unit}
+            habit={habit}
+            allEntries={entries}
+            onPopoverSubmit={(date, opts) => handlePopoverSubmit(date, opts)}
           />
           {/* Legend */}
-          <div className="flex items-center gap-5 text-xs text-muted-foreground pt-2 border-t border-border">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex }} />
-              {t('habits.entryCompleted')}
-            </div>
+          <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-2 border-t border-border">
+            {habit.tracking_type === 'numeric' && habit.target_value ? (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex }} />
+                  100%+
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex, opacity: 0.7 }} />
+                  75%
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex, opacity: 0.4 }} />
+                  50%
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex, opacity: 0.2 }} />
+                  &lt;50%
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex }} />
+                {t('habits.entryCompleted')}
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm bg-amber-500" />
               {t('habits.entrySkipped')}
@@ -243,13 +315,39 @@ export default function HabitDetailPage() {
             entries={habitEntries}
             colorHex={habit.color_hex}
             onToggle={(dateStr) => handleToggle(dateStr)}
+            targetValue={habit.target_value}
+            trackingType={habit.tracking_type}
+            unit={habit.unit}
+            habit={habit}
+            onPopoverSubmit={(date, opts) => handlePopoverSubmit(date, opts)}
           />
           {/* Legend */}
-          <div className="flex items-center gap-5 text-xs text-muted-foreground pt-4 mt-4 border-t border-border">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex }} />
-              {t('habits.entryCompleted')}
-            </div>
+          <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-4 mt-4 border-t border-border">
+            {habit.tracking_type === 'numeric' && habit.target_value ? (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex }} />
+                  100%+
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex, opacity: 0.7 }} />
+                  75%
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex, opacity: 0.4 }} />
+                  50%
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex, opacity: 0.2 }} />
+                  &lt;50%
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex }} />
+                {t('habits.entryCompleted')}
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm bg-amber-500" />
               {t('habits.entrySkipped')}
@@ -264,17 +362,8 @@ export default function HabitDetailPage() {
 
       <EditHabitDialog habit={habit} open={editOpen} onOpenChange={setEditOpen} />
 
-      {/* Session Picker Dialog */}
-      {sessionPickerDate && habit && (
-        <SessionPickerDialog
-          open={true}
-          onOpenChange={(open) => { if (!open) setSessionPickerDate(null) }}
-          habit={habit}
-          entries={entries}
-          date={sessionPickerDate}
-          onSelectSession={handleSelectSession}
-        />
-      )}
+
+
     </div>
   )
 }
