@@ -32,19 +32,9 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
   const [unit, setUnit] = useState('')
   const [targetMinutes, setTargetMinutes] = useState(25)
   const [groupId, setGroupId] = useState<string | null>(null)
-  const [tags, setTags] = useState<string[]>([])
-  const [newTag, setNewTag] = useState('')
   const [sessions, setSessions] = useState<HabitSession[]>([])
   const [newSessionLabel, setNewSessionLabel] = useState('')
   const [saving, setSaving] = useState(false)
-
-  const addTag = () => {
-    const v = newTag.trim()
-    if (v && !tags.includes(v)) {
-      setTags([...tags, v])
-      setNewTag('')
-    }
-  }
 
   const addSession = () => {
     const label = newSessionLabel.trim()
@@ -61,7 +51,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
     setTitle(''); setIconName('zap'); setColorHex('#3DD68C')
     setFrequency('daily'); setWeeklyTarget(3)
     setTrackingType('boolean'); setTargetValue(''); setUnit('')
-    setTargetMinutes(25); setGroupId(null); setTags([]); setNewTag('')
+    setTargetMinutes(25); setGroupId(null)
     setSessions([]); setNewSessionLabel('')
   }
 
@@ -79,7 +69,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
       target_value: trackingType === 'numeric' ? Number(targetValue) || null : null,
       unit: trackingType === 'numeric' ? unit || null : null,
       target_minutes: trackingType === 'timer' ? targetMinutes : null,
-      tags,
+      tags: [],
       sessions: frequency === 'weekly' && sessions.length > 0 ? sessions : null,
       is_archived: false,
       sort_order: 0,
@@ -278,39 +268,6 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
                     className="flex-1"
                     style={{ accentColor: colorHex }}
                   />
-                </div>
-              )}
-            </div>
-
-            {/* Tags */}
-            <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.tagsOptional')}</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder={t('habits.tagPlaceholder')}
-                  value={newTag}
-                  onChange={e => setNewTag(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  className="bg-secondary/50 border-0 h-9"
-                />
-                <Button variant="ghost" size="icon" onClick={addTag} disabled={!newTag.trim()} className="h-9 w-9 shrink-0">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 font-medium"
-                      style={{ backgroundColor: `${colorHex}12`, color: colorHex }}
-                    >
-                      {tag}
-                      <button onClick={() => setTags(tags.filter((_, j) => j !== i))} className="hover:opacity-70">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
                 </div>
               )}
             </div>

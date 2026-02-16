@@ -6,7 +6,6 @@ import type { Habit, HabitEntry } from '@/lib/types/database'
 import { Heatmap } from '@/components/heatmap'
 import { HabitToggleButton } from './habit-toggle-button'
 import { NumericInputPopover } from './numeric-input-dialog'
-import { HabitTagPills } from './habit-tag-pills'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { calculateStreak, calculateTotal } from '@/lib/utils/stats'
 import { useMemo } from 'react'
@@ -67,8 +66,6 @@ export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedTo
           />
         </NumericInputPopover>
       </div>
-
-      <HabitTagPills tags={habit.tags as string[]} colorHex={habit.color_hex} />
 
       {/* Heatmap */}
       <div className="mt-3">

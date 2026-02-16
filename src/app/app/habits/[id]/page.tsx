@@ -6,7 +6,6 @@ import { useHabitsStore } from '@/lib/store/habits-store'
 import { useT } from '@/lib/i18n/provider'
 import { Heatmap, MonthlyHeatmap } from '@/components/heatmap'
 import { HabitToggleButton } from '@/components/habits/habit-toggle-button'
-import { HabitTagPills } from '@/components/habits/habit-tag-pills'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { EditHabitDialog } from '@/components/habits/edit-habit-dialog'
 import { NumericInputPopover } from '@/components/habits/numeric-input-dialog'
@@ -111,9 +110,6 @@ export default function HabitDetailPage() {
             <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
               {habit.frequency === 'daily' ? t('habits.daily') : t('habits.weeklyTargetLong', { count: habit.weekly_target ?? 1 })} · {habit.tracking_type === 'boolean' ? t('habits.yesNo') : habit.tracking_type}
             </p>
-            <div className="mt-2">
-              <HabitTagPills tags={habit.tags as string[]} colorHex={habit.color_hex} />
-            </div>
           </div>
         </div>
 

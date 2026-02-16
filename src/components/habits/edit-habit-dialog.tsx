@@ -36,8 +36,6 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
   const [unit, setUnit] = useState(habit.unit ?? '')
   const [targetMinutes, setTargetMinutes] = useState(habit.target_minutes ?? 25)
   const [groupId, setGroupId] = useState(habit.group_id)
-  const [tags, setTags] = useState<string[]>((habit.tags as string[]) ?? [])
-  const [newTag, setNewTag] = useState('')
   const [sessions, setSessions] = useState<HabitSession[]>((habit.sessions as HabitSession[]) ?? [])
   const [newSessionLabel, setNewSessionLabel] = useState('')
   const [saving, setSaving] = useState(false)
@@ -48,15 +46,10 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
       setFrequency(habit.frequency); setWeeklyTarget(habit.weekly_target ?? 3)
       setTrackingType(habit.tracking_type); setTargetValue(habit.target_value?.toString() ?? '')
       setUnit(habit.unit ?? ''); setTargetMinutes(habit.target_minutes ?? 25)
-      setGroupId(habit.group_id); setTags((habit.tags as string[]) ?? [])
+      setGroupId(habit.group_id)
       setSessions((habit.sessions as HabitSession[]) ?? []); setNewSessionLabel('')
     }
   }, [open, habit])
-
-  const addTag = () => {
-    const v = newTag.trim()
-    if (v && !tags.includes(v)) { setTags([...tags, v]); setNewTag('') }
-  }
 
   const addSession = () => {
     const label = newSessionLabel.trim()
@@ -79,7 +72,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
       target_value: trackingType === 'numeric' ? Number(targetValue) || null : null,
       unit: trackingType === 'numeric' ? unit || null : null,
       target_minutes: trackingType === 'timer' ? targetMinutes : null,
-      tags,
+      tags: [],
       sessions: frequency === 'weekly' && sessions.length > 0 ? sessions : null,
     })
     setSaving(false)
@@ -242,32 +235,6 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Tags */}
-            <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.tagsOptional')}</Label>
-              <div className="flex gap-2">
-                <Input placeholder={t('habits.tagPlaceholder')} value={newTag} onChange={e => setNewTag(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  className="bg-secondary/50 border-0 h-9" />
-                <Button variant="ghost" size="icon" onClick={addTag} disabled={!newTag.trim()} className="h-9 w-9 shrink-0">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {tags.map((tag, i) => (
-                    <span key={i} className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 font-medium"
-                      style={{ backgroundColor: `${colorHex}12`, color: colorHex }}>
-                      {tag}
-                      <button onClick={() => setTags(tags.filter((_, j) => j !== i))} className="hover:opacity-70">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Group */}

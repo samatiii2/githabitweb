@@ -4,7 +4,6 @@ import Link from 'next/link'
 import type { Habit, HabitEntry } from '@/lib/types/database'
 import { HabitToggleButton } from './habit-toggle-button'
 import { NumericInputPopover } from './numeric-input-dialog'
-import { HabitTagPills } from './habit-tag-pills'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { getLastNDays, calculateStreak } from '@/lib/utils/stats'
 import { format } from 'date-fns'
@@ -65,7 +64,7 @@ export function HabitListRow({ habit, entries, allEntries, isCompletedToday, isS
             </span>
           )}
         </div>
-        <HabitTagPills tags={habit.tags as string[]} colorHex={habit.color_hex} max={3} compact />
+        
       </Link>
 
       {/* Last 7 days — clickable cells with popover */}

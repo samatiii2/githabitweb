@@ -4,7 +4,6 @@ import Link from 'next/link'
 import type { Habit, HabitEntry } from '@/lib/types/database'
 import { MiniHeatmap } from '@/components/heatmap'
 import { HabitToggleButton } from './habit-toggle-button'
-import { HabitTagPills } from './habit-tag-pills'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { calculateStreak } from '@/lib/utils/stats'
 import { useMemo } from 'react'
@@ -49,7 +48,6 @@ export function HabitGridCard({ habit, entries, isCompletedToday, isSkippedToday
           </div>
         </div>
 
-        <HabitTagPills tags={habit.tags as string[]} colorHex={habit.color_hex} max={2} />
 
         <div className="mt-2">
           <MiniHeatmap entries={entries} colorHex={habit.color_hex} />

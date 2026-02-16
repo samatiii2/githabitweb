@@ -1,47 +1,57 @@
 'use client'
 
 import { useState } from 'react'
-import { CHALLENGES, CATEGORIES, type ChallengeTemplate } from '@/lib/data/challenges'
+import { HABIT_TEMPLATES, CATEGORIES, type HabitTemplate } from '@/lib/data/challenges'
 import { useHabitsStore } from '@/lib/store/habits-store'
 import { useT } from '@/lib/i18n/provider'
 import { DynamicIcon } from '@/components/dynamic-icon'
-import { Button } from '@/components/ui/button'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
-import { Check, Trophy, Clock, Zap } from 'lucide-react'
+import { Check, Plus, Clock, Hash, ToggleLeft } from 'lucide-react'
 
-export default function ChallengesPage() {
+export default function TemplatesPage() {
   const { createHabit } = useHabitsStore()
   const t = useT()
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [confirmChallenge, setConfirmChallenge] = useState<ChallengeTemplate | null>(null)
-  const [startedIds, setStartedIds] = useState<Set<string>>(new Set())
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const filtered = selectedCategory
-    ? CHALLENGES.filter(c => c.category === selectedCategory)
-    : CHALLENGES
+    ? HABIT_TEMPLATES.filter(h => h.category === selectedCategory)
+    : HABIT_TEMPLATES
 
-  const handleStart = async (challenge: ChallengeTemplate) => {
-    for (const h of challenge.habits) {
-      await createHabit({
-        title: h.title,
-        icon_name: h.iconName,
-        color_hex: h.colorHex,
-        frequency: h.frequency,
-        tracking_type: h.trackingType,
-        target_value: h.targetValue ?? null,
-        unit: h.unit ?? null,
-        target_minutes: h.targetMinutes ?? null,
-        weekly_target: h.frequency === 'weekly' ? 5 : null,
-        group_id: null,
-        tags: [],
-        sessions: null,
-        is_archived: false,
-        sort_order: 0,
-      })
-    }
-    setStartedIds(prev => new Set(prev).add(challenge.id))
-    setConfirmChallenge(null)
+  const handleAdd = async (template: HabitTemplate) => {
+    if (addedIds.has(template.id) || loadingId) return
+    setLoadingId(template.id)
+    await createHabit({
+      title: template.title,
+      icon_name: template.iconName,
+      color_hex: template.colorHex,
+      frequency: template.frequency,
+      tracking_type: template.trackingType,
+      target_value: template.targetValue ?? null,
+      unit: template.unit ?? null,
+      target_minutes: template.targetMinutes ?? null,
+      weekly_target: template.frequency === 'weekly' ? 5 : null,
+      group_id: null,
+      tags: [],
+      sessions: null,
+      is_archived: false,
+      sort_order: 0,
+    })
+    setAddedIds(prev => new Set(prev).add(template.id))
+    setLoadingId(null)
+  }
+
+  const trackingLabel = (t: HabitTemplate) => {
+    if (t.trackingType === 'timer') return `${t.targetMinutes} min`
+    if (t.trackingType === 'numeric') return `${t.targetValue} ${t.unit}`
+    return t.frequency === 'weekly' ? 'Hebdo' : 'Oui/Non'
+  }
+
+  const TrackingIcon = ({ type }: { type: string }) => {
+    if (type === 'timer') return <Clock className="w-3 h-3" />
+    if (type === 'numeric') return <Hash className="w-3 h-3" />
+    return <ToggleLeft className="w-3 h-3" />
   }
 
   return (
@@ -83,87 +93,75 @@ export default function ChallengesPage() {
         ))}
       </div>
 
-      {/* Challenge grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(challenge => {
-          const started = startedIds.has(challenge.id)
+      {/* Template grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        {filtered.map(template => {
+          const isAdded = addedIds.has(template.id)
+          const isLoading = loadingId === template.id
+
           return (
-            <div key={challenge.id} className="card-elevated rounded-xl p-5 transition-all duration-200 hover:scale-[1.01]">
-              {/* Header */}
-              <div className="flex items-start gap-3 mb-3">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${challenge.colorHex}12` }}
-                >
-                  <DynamicIcon name={challenge.iconName} className="w-5 h-5" style={{ color: challenge.colorHex }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm leading-snug">{challenge.name}</p>
-                  <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {t('challenges.durationDays', { n: challenge.durationDays })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> {challenge.habits.length > 1 ? t('challenges.habitCountPlural', { count: challenge.habits.length }) : t('challenges.habitCount', { count: challenge.habits.length })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">{challenge.description}</p>
-
-              {/* Habit pills */}
-              <div className="flex flex-wrap gap-1 mb-4">
-                {challenge.habits.map((h, i) => (
-                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                    style={{ backgroundColor: `${h.colorHex}10`, color: h.colorHex }}>
-                    {h.title}
-                  </span>
-                ))}
-              </div>
-
-              {/* Action */}
-              {started ? (
-                <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-primary/8 text-primary text-sm font-medium">
-                  <Check className="w-4 h-4" /> {t('challenges.started')}
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={() => setConfirmChallenge(challenge)}
-                  className="w-full text-xs font-semibold h-9"
-                  style={{ backgroundColor: challenge.colorHex, color: 'var(--icon-on-color)' }}
-                >
-                  <Trophy className="w-3.5 h-3.5 mr-1.5" /> {t('challenges.startChallenge')}
-                </Button>
+            <button
+              key={template.id}
+              onClick={() => handleAdd(template)}
+              disabled={isAdded || isLoading}
+              className={cn(
+                'card-elevated rounded-xl p-4 text-left transition-all duration-200 group',
+                isAdded
+                  ? 'opacity-60 cursor-default'
+                  : 'hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
               )}
-            </div>
+            >
+              <div className="flex items-start gap-3">
+                {/* Icon */}
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+                  style={{ backgroundColor: `${template.colorHex}15` }}
+                >
+                  <DynamicIcon name={template.iconName} className="w-5 h-5" style={{ color: template.colorHex }} />
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm leading-snug truncate">{template.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+                    {template.description}
+                  </p>
+                </div>
+
+                {/* Add / Added indicator */}
+                <div
+                  className={cn(
+                    'w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all',
+                    isAdded
+                      ? ''
+                      : 'group-hover:scale-110'
+                  )}
+                  style={{
+                    backgroundColor: isAdded ? `${template.colorHex}20` : `${template.colorHex}10`,
+                    color: template.colorHex,
+                  }}
+                >
+                  {isAdded ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                </div>
+              </div>
+
+              {/* Footer — tracking type badge */}
+              <div className="mt-2.5 flex items-center gap-1.5">
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${template.colorHex}10`, color: template.colorHex }}
+                >
+                  <TrackingIcon type={template.trackingType} />
+                  {trackingLabel(template)}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {template.category}
+                </span>
+              </div>
+            </button>
           )
         })}
       </div>
-
-      <AlertDialog open={!!confirmChallenge} onOpenChange={() => setConfirmChallenge(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('challenges.startConfirm')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmChallenge && (
-                <>
-                  {t('challenges.startDesc', { name: confirmChallenge.name, count: confirmChallenge.habits.length, days: confirmChallenge.durationDays })}
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmChallenge && handleStart(confirmChallenge)}
-              className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {t('challenges.start')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
