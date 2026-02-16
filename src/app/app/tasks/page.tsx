@@ -15,7 +15,7 @@ import {
   Plus, Search, Trash2, Clock, Columns3, List, Inbox, CalendarDays,
   CalendarRange, ListChecks, CheckCircle2, FolderOpen, Tag, ArrowUpDown,
   Group, AlertCircle, ArrowRightCircle, Calendar as CalendarIcon,
-  Circle, Flag, ChevronLeft, ChevronRight, Pencil
+  Circle, Flag, ChevronLeft, ChevronRight, Pencil, SlidersHorizontal, X
 } from 'lucide-react'
 import type { Task } from '@/lib/types/database'
 import { DynamicIcon } from '@/components/dynamic-icon'
@@ -110,6 +110,7 @@ export default function TasksPage() {
   const [showInlineForm, setShowInlineForm] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   // Create project/label dialogs
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
@@ -483,27 +484,41 @@ export default function TasksPage() {
             )}
           </div>
 
-          {/* Mobile smart view tabs */}
-          <div className="lg:hidden flex items-center gap-1 overflow-x-auto pb-1">
-            {SMART_VIEWS.map(view => {
-              const active = smartView === view.id && !selectedProjectId && !selectedLabelId
-              return (
-                <button
-                  key={view.id}
-                  onClick={() => setSmartView(view.id)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
-                    active ? 'bg-primary/10 text-primary ring-1 ring-primary/20' : 'bg-secondary text-muted-foreground'
-                  )}
-                >
-                  {view.label}
-                </button>
-              )
-            })}
+          {/* Mobile: smart view tabs + filter button */}
+          <div className="lg:hidden space-y-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {SMART_VIEWS.map(view => {
+                const active = smartView === view.id && !selectedProjectId && !selectedLabelId
+                return (
+                  <button
+                    key={view.id}
+                    onClick={() => { setSmartView(view.id); setSelectedProjectId(null); setSelectedLabelId(null) }}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
+                      active ? 'bg-primary/10 text-primary ring-1 ring-primary/20' : 'bg-secondary text-muted-foreground'
+                    )}
+                  >
+                    {view.label}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
+                  (selectedProjectId || selectedLabelId) ? 'bg-primary/10 text-primary ring-1 ring-primary/20' : 'bg-secondary text-muted-foreground'
+                )}
+              >
+                <SlidersHorizontal className="w-3 h-3" />
+                {selectedProjectId ? projects.find(p => p.id === selectedProjectId)?.name
+                  : selectedLabelId ? labels.find(l => l.id === selectedLabelId)?.name
+                  : t('tasks.projects') + ' / ' + t('tasks.labelsNav')}
+              </button>
+            </div>
           </div>
 
           {/* Toolbar: Search + Sort + Group + View + Priority */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 overflow-x-auto">
             <div className="relative flex-1 min-w-[140px] max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
@@ -765,11 +780,11 @@ export default function TasksPage() {
       {selectedTaskId && (
         <>
           {/* Desktop: inline panel */}
-          <div className="hidden lg:block border-l border-border bg-background shrink-0 w-[380px] overflow-hidden">
+          <div className="hidden lg:block border-l border-border bg-background shrink-0 w-[380px] h-full overflow-hidden">
             <TaskDetailSheet taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
           </div>
           {/* Mobile: overlay */}
-          <div className="lg:hidden fixed inset-0 z-50 bg-background">
+          <div className="lg:hidden fixed inset-0 z-50 bg-background h-[100dvh]">
             <TaskDetailSheet taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
           </div>
         </>
@@ -911,6 +926,147 @@ export default function TasksPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ═══ Mobile Sidebar Drawer ═══ */}
+      {mobileSidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+          {/* Panel */}
+          <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl border-t border-border max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+            {/* Handle bar */}
+            <div className="flex items-center justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3">
+              <h2 className="text-base font-bold">{t('tasks.projects')} & {t('tasks.labelsNav')}</h2>
+              <button onClick={() => setMobileSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Smart Views */}
+            <div className="px-4 pb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">{t('tasks.views')}</p>
+              <div className="space-y-0.5">
+                {SMART_VIEWS.map(view => {
+                  const Icon = view.icon
+                  const active = smartView === view.id && !selectedProjectId && !selectedLabelId
+                  const count = view.id === 'today' ? todayCount
+                    : view.id === 'upcoming' ? upcomingCount
+                    : view.id === 'inbox' ? activeCount
+                    : view.id === 'completed' ? completedCount
+                    : parentTasks.length
+                  return (
+                    <button
+                      key={view.id}
+                      onClick={() => { setSmartView(view.id); setSelectedProjectId(null); setSelectedLabelId(null); setMobileSidebarOpen(false) }}
+                      className={cn(
+                        'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                        active ? 'bg-primary/8 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                      )}
+                    >
+                      <Icon className="w-4.5 h-4.5 shrink-0" />
+                      <span className="flex-1 text-left">{view.label}</span>
+                      <span className="text-xs text-muted-foreground">{view.desc}</span>
+                      {count > 0 && (
+                        <span className={cn(
+                          'text-[10px] min-w-[22px] text-center px-1.5 py-0.5 rounded-full',
+                          active ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
+                        )}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mx-4 border-t border-border" />
+
+            {/* Projects */}
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between px-1 mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.projects')}</p>
+                <button onClick={() => { setCreateProjectOpen(true); setMobileSidebarOpen(false) }} className="text-primary text-xs font-medium">
+                  + {t('common.create')}
+                </button>
+              </div>
+              <div className="space-y-0.5">
+                {projects.map(p => {
+                  const count = store.projectLinks.filter(l => l.project_id === p.id).length
+                  const active = selectedProjectId === p.id
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => { setSelectedProjectId(active ? null : p.id); setSelectedLabelId(null); setMobileSidebarOpen(false) }}
+                      className={cn(
+                        'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                        active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                      )}
+                    >
+                      <DynamicIcon name={p.icon_name} className="w-4.5 h-4.5 shrink-0" style={{ color: p.color_hex }} />
+                      <span className="flex-1 text-left truncate">{p.name}</span>
+                      {count > 0 && <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">{count}</span>}
+                    </button>
+                  )
+                })}
+                {projects.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-3 py-2">{t('tasks.noProjectsCreated')}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mx-4 border-t border-border" />
+
+            {/* Labels */}
+            <div className="px-4 py-3 pb-8">
+              <div className="flex items-center justify-between px-1 mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('tasks.labelsNav')}</p>
+                <button onClick={() => { setCreateLabelOpen(true); setMobileSidebarOpen(false) }} className="text-primary text-xs font-medium">
+                  + {t('common.create')}
+                </button>
+              </div>
+              <div className="space-y-0.5">
+                {labels.map(l => {
+                  const active = selectedLabelId === l.id
+                  return (
+                    <button
+                      key={l.id}
+                      onClick={() => { setSelectedLabelId(active ? null : l.id); setSelectedProjectId(null); setMobileSidebarOpen(false) }}
+                      className={cn(
+                        'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                        active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                      )}
+                    >
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: l.color_hex }} />
+                      <span className="flex-1 text-left truncate">{l.name}</span>
+                    </button>
+                  )
+                })}
+                {labels.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-3 py-2">{t('tasks.noLabelsCreated')}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Clear filters button */}
+            {(selectedProjectId || selectedLabelId) && (
+              <div className="px-4 pb-6">
+                <button
+                  onClick={() => { setSelectedProjectId(null); setSelectedLabelId(null); setMobileSidebarOpen(false) }}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium text-destructive bg-destructive/10 hover:bg-destructive/15 transition-colors"
+                >
+                  {t('common.clear')} filters
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

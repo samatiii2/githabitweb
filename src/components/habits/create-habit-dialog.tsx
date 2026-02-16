@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// ScrollArea replaced with native overflow-y-auto for better mobile scroll support
 import { COLORS, HABIT_ICONS } from '@/lib/constants'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { useHabitsStore } from '@/lib/store/habits-store'
@@ -91,16 +91,16 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg p-0 bg-background border-l border-border">
-        <SheetHeader className="px-6 py-4 border-b border-border">
+      <SheetContent className="w-full sm:max-w-lg p-0 gap-0 bg-background border-l border-border" showCloseButton={false}>
+        <SheetHeader className="px-6 py-4 border-b border-border shrink-0">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Sparkles className="w-4 h-4 text-primary" />
             {t('habits.newHabit')}
           </SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-130px)]">
-          <div className="px-6 py-5 space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+          <div className="px-6 py-5 space-y-6 pb-6">
             {/* Preview */}
             <div className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border">
               <div
@@ -390,10 +390,10 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-border bg-background">
+        <div className="px-6 py-4 border-t border-border bg-background shrink-0">
           <Button
             onClick={handleSubmit}
             disabled={!title.trim() || saving}

@@ -210,67 +210,87 @@ function ProjectPickerPopover({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+          className={cn(
+            'inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors border',
+            selected
+              ? 'border-current/20 hover:opacity-80'
+              : 'border-border hover:bg-secondary text-muted-foreground hover:text-foreground'
+          )}
+          style={selected ? { color: selected.color_hex, backgroundColor: `${selected.color_hex}15` } : undefined}
         >
           {selected ? (
             <>
-              <DynamicIcon name={selected.icon_name} className="w-3.5 h-3.5" style={{ color: selected.color_hex }} />
+              <DynamicIcon name={selected.icon_name} className="w-3.5 h-3.5" />
               {selected.name}
             </>
           ) : (
             <>
-              <Inbox className="w-3.5 h-3.5" /> Inbox
+              <FolderOpen className="w-3.5 h-3.5" /> Project
             </>
           )}
           <ChevronDown className="w-3 h-3 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[240px] p-0" align="start" sideOffset={8}>
+      <PopoverContent className="w-[260px] p-0" align="start" sideOffset={8}>
         {/* Search */}
-        <div className="p-2 border-b border-border">
-          <Input
-            placeholder="Type a project name"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="h-8 text-xs bg-transparent border-0 focus-visible:ring-0 px-2"
-            autoFocus
-          />
-        </div>
+        {projects.length > 4 && (
+          <div className="p-2 border-b border-border">
+            <Input
+              placeholder="Search projects..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-8 text-xs bg-transparent border-0 focus-visible:ring-0 px-2"
+              autoFocus
+            />
+          </div>
+        )}
 
         {/* Options */}
-        <div className="p-1.5 max-h-[240px] overflow-y-auto">
-          {/* Inbox */}
+        <div className="p-1.5 max-h-[280px] overflow-y-auto">
+          {/* Inbox (no project) */}
           <button
             onClick={() => { onChange(null); setOpen(false) }}
             className={cn(
-              'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-colors text-left',
-              !selectedProjectId ? 'bg-secondary' : 'hover:bg-secondary'
+              'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left',
+              !selectedProjectId ? 'bg-primary/5' : 'hover:bg-accent'
             )}
           >
             <Inbox className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-medium flex-1">Inbox</span>
-            {!selectedProjectId && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+            {!selectedProjectId && (
+              <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center shrink-0">
+                <Hash className="w-2.5 h-2.5 text-primary-foreground" />
+              </div>
+            )}
           </button>
 
           {/* Projects */}
           {filtered.length > 0 && (
             <div className="mt-1 pt-1 border-t border-border/50">
-              <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">My Projects</p>
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">My Projects</p>
               {filtered.map(p => (
                 <button
                   key={p.id}
                   onClick={() => { onChange(p.id); setOpen(false) }}
                   className={cn(
-                    'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-colors text-left',
-                    selectedProjectId === p.id ? 'bg-secondary' : 'hover:bg-secondary'
+                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left',
+                    selectedProjectId === p.id ? 'bg-primary/5' : 'hover:bg-accent'
                   )}
                 >
-                  <DynamicIcon name={p.icon_name} className="w-4 h-4" style={{ color: p.color_hex }} />
+                  <DynamicIcon name={p.icon_name} className="w-4 h-4 shrink-0" style={{ color: p.color_hex }} />
                   <span className="text-sm flex-1 truncate">{p.name}</span>
-                  {selectedProjectId === p.id && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                  {selectedProjectId === p.id && (
+                    <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <Hash className="w-2.5 h-2.5 text-primary-foreground" />
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
+          )}
+
+          {filtered.length === 0 && search && (
+            <p className="px-3 py-2 text-xs text-muted-foreground">No projects found</p>
           )}
         </div>
       </PopoverContent>
@@ -358,7 +378,7 @@ export function TaskInlineForm({
         />
       </div>
 
-      {/* Toolbar — Date, Priority, Reminders, More */}
+      {/* Toolbar — Date, Priority, Project, Recurrence, Reminders */}
       <div className="px-3 py-2 flex items-center gap-1.5 flex-wrap">
         <DatePickerPopover
           value={dueDate}
@@ -367,6 +387,11 @@ export function TaskInlineForm({
         <PriorityPickerPopover
           value={priority}
           onChange={setPriority}
+        />
+        <ProjectPickerPopover
+          projects={projects}
+          selectedProjectId={projectId}
+          onChange={setProjectId}
         />
         <RecurrencePicker
           recurrence={recurrence}
@@ -381,32 +406,24 @@ export function TaskInlineForm({
         </button>
       </div>
 
-      {/* Bottom bar — Project picker + Cancel/Add */}
-      <div className="px-3 py-2.5 flex items-center justify-between border-t border-border bg-secondary/20">
-        <ProjectPickerPopover
-          projects={projects}
-          selectedProjectId={projectId}
-          onChange={setProjectId}
-        />
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCancel}
-            className="text-xs h-8 px-3 text-muted-foreground hover:text-foreground"
-          >
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSubmit}
-            disabled={!title.trim() || submitting}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs h-8 px-4"
-          >
-            Add task
-          </Button>
-        </div>
+      {/* Bottom bar — Cancel/Add */}
+      <div className="px-3 py-2.5 flex items-center justify-end gap-2 border-t border-border bg-secondary/20">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          className="text-xs h-8 px-3 text-muted-foreground hover:text-foreground"
+        >
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleSubmit}
+          disabled={!title.trim() || submitting}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs h-8 px-4"
+        >
+          Add task
+        </Button>
       </div>
     </div>
   )
