@@ -9,9 +9,11 @@ import { HabitMonthCard } from '@/components/habits/habit-month-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
+import { DynamicIcon } from '@/components/dynamic-icon'
 import {
   Plus, List, Grid3X3, CalendarDays, Search, Flame,
-  Target, TrendingUp, Sparkles, ChevronDown, ChevronUp
+  Target, TrendingUp, Sparkles, ChevronDown, ChevronUp, FolderOpen, X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -25,12 +27,14 @@ export default function DashboardPage() {
     selectedGroupId, setSelectedGroupId,
     searchQuery, setSearchQuery,
     fetchHabits, fetchEntries, fetchGroups,
-    toggleEntry, upsertEntry
+    toggleEntry, upsertEntry, createGroup
   } = useHabitsStore()
 
   const t = useT()
   const [createOpen, setCreateOpen] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false)
 
   // Simple toggle for boolean habits or cycling existing entries
   const handleToggle = (habitId: string, date?: string) => {
@@ -211,39 +215,126 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Group filter pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            <button
-              onClick={() => setSelectedGroupId(null)}
-              className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
-                selectedGroupId === null
-                  ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground'
+          {/* Category filter dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all',
+                selectedGroupId ? 'ring-1 shadow-sm' : 'bg-secondary text-muted-foreground hover:text-foreground'
               )}
-            >
-              All
-            </button>
-            {groups.map(g => (
-              <button
-                key={g.id}
-                onClick={() => setSelectedGroupId(g.id)}
-                className={cn(
-                  'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
-                  selectedGroupId === g.id
-                    ? 'ring-1'
-                    : 'bg-secondary text-muted-foreground hover:text-foreground'
-                )}
-                style={selectedGroupId === g.id ? {
-                  backgroundColor: `${g.color_hex}15`,
-                  color: g.color_hex,
-                  boxShadow: `0 0 0 1px ${g.color_hex}30`
-                } : undefined}
+              style={selectedGroupId ? (() => {
+                const g = groups.find(g => g.id === selectedGroupId)
+                return g ? { backgroundColor: `${g.color_hex}15`, color: g.color_hex, boxShadow: `0 0 0 1px ${g.color_hex}30` } : undefined
+              })() : undefined}
               >
-                {g.name}
+                <FolderOpen className="w-3 h-3" />
+                {selectedGroupId
+                  ? groups.find(g => g.id === selectedGroupId)?.name ?? t('habits.categories')
+                  : t('habits.categories')}
+                <ChevronDown className="w-3 h-3 opacity-60" />
               </button>
-            ))}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">{t('habits.categories')}</DropdownMenuLabel>
+
+              {/* All categories */}
+              <button
+                onClick={() => setSelectedGroupId(null)}
+                className="flex items-center gap-2.5 w-full px-2 py-1.5 text-xs hover:bg-accent rounded transition-colors"
+              >
+                <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center', !selectedGroupId ? 'bg-primary border-primary' : 'border-border')}>
+                  {!selectedGroupId && <span className="text-[8px] text-primary-foreground font-bold">✓</span>}
+                </div>
+                <span>{t('habits.allCategories')}</span>
+              </button>
+
+              {groups.map(g => {
+                const active = selectedGroupId === g.id
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => setSelectedGroupId(active ? null : g.id)}
+                    className="flex items-center gap-2.5 w-full px-2 py-1.5 text-xs hover:bg-accent rounded transition-colors"
+                  >
+                    <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center', active ? 'bg-primary border-primary' : 'border-border')}>
+                      {active && <span className="text-[8px] text-primary-foreground font-bold">✓</span>}
+                    </div>
+                    <DynamicIcon name={g.icon_name} className="w-3.5 h-3.5 shrink-0" style={{ color: g.color_hex }} />
+                    <span className="truncate">{g.name}</span>
+                  </button>
+                )
+              })}
+
+              {selectedGroupId && (
+                <>
+                  <DropdownMenuSeparator />
+                  <button
+                    onClick={() => setSelectedGroupId(null)}
+                    className="w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
+                  >
+                    {t('common.clear')}
+                  </button>
+                </>
+              )}
+
+              <DropdownMenuSeparator />
+
+              {/* Inline create */}
+              {!showNewCategoryInput ? (
+                <button
+                  onClick={(e) => { e.preventDefault(); setShowNewCategoryInput(true) }}
+                  className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-primary hover:bg-accent rounded transition-colors"
+                >
+                  <Plus className="w-3 h-3" /> {t('habits.createCategory')}
+                </button>
+              ) : (
+                <div className="px-2 py-1.5 space-y-1.5" onClick={e => e.stopPropagation()}>
+                  <Input
+                    placeholder={t('habits.categoryNamePlaceholder')}
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    onKeyDown={async e => {
+                      if (e.key === 'Enter' && newCategoryName.trim()) {
+                        e.preventDefault()
+                        await createGroup({ name: newCategoryName.trim(), icon_name: 'folder', color_hex: '#3DD68C' })
+                        setNewCategoryName('')
+                        setShowNewCategoryInput(false)
+                      }
+                      if (e.key === 'Escape') {
+                        setShowNewCategoryInput(false)
+                        setNewCategoryName('')
+                      }
+                    }}
+                    autoFocus
+                    className="bg-secondary/50 border-0 h-7 text-xs"
+                  />
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        if (newCategoryName.trim()) {
+                          await createGroup({ name: newCategoryName.trim(), icon_name: 'folder', color_hex: '#3DD68C' })
+                          setNewCategoryName('')
+                          setShowNewCategoryInput(false)
+                        }
+                      }}
+                      disabled={!newCategoryName.trim()}
+                      className="h-6 text-[10px] flex-1"
+                    >
+                      {t('common.create')}
+                    </Button>
+                    <Button
+                      size="sm" variant="ghost"
+                      onClick={() => { setShowNewCategoryInput(false); setNewCategoryName('') }}
+                      className="h-6 text-[10px] px-2"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* View mode - segmented control */}
           <div className="flex items-center bg-secondary/80 rounded-lg p-0.5 border border-border/50">

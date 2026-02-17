@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { COLORS, HABIT_ICONS } from '@/lib/constants'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { useHabitsStore } from '@/lib/store/habits-store'
-import { Plus, X, Sparkles, Dumbbell } from 'lucide-react'
+import { Plus, X, Sparkles, Dumbbell, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n/provider'
 import type { HabitSession } from '@/lib/types/database'
@@ -21,7 +21,7 @@ interface Props {
 
 export function CreateHabitDialog({ open, onOpenChange }: Props) {
   const t = useT()
-  const { createHabit, groups } = useHabitsStore()
+  const { createHabit, groups, createGroup } = useHabitsStore()
   const [title, setTitle] = useState('')
   const [iconName, setIconName] = useState('zap')
   const [colorHex, setColorHex] = useState('#3DD68C')
@@ -35,6 +35,8 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
   const [sessions, setSessions] = useState<HabitSession[]>([])
   const [newSessionLabel, setNewSessionLabel] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showNewCategory, setShowNewCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
 
   const addSession = () => {
     const label = newSessionLabel.trim()
@@ -272,36 +274,83 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
               )}
             </div>
 
-            {/* Group */}
-            {groups.length > 0 && (
-              <div className="space-y-3">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.group')}</Label>
-                <div className="flex flex-wrap gap-2">
+            {/* Category */}
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.category')}</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setGroupId(null)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                    !groupId ? 'bg-secondary ring-1 ring-border text-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {t('habits.noCategory')}
+                </button>
+                {groups.map(g => (
                   <button
-                    onClick={() => setGroupId(null)}
+                    key={g.id}
+                    onClick={() => setGroupId(g.id)}
                     className={cn(
-                      'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                      !groupId ? 'bg-secondary ring-1 ring-border text-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      groupId === g.id ? 'ring-1 shadow-sm' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
                     )}
+                    style={groupId === g.id ? { backgroundColor: `${g.color_hex}15`, color: g.color_hex, boxShadow: `0 0 0 1px ${g.color_hex}30` } : undefined}
                   >
-                    {t('common.none')}
+                    <DynamicIcon name={g.icon_name} className="w-3 h-3" style={{ color: groupId === g.id ? g.color_hex : undefined }} />
+                    {g.name}
                   </button>
-                  {groups.map(g => (
-                    <button
-                      key={g.id}
-                      onClick={() => setGroupId(g.id)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                        groupId === g.id ? 'text-[var(--icon-on-color)]' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                      )}
-                      style={groupId === g.id ? { backgroundColor: g.color_hex } : undefined}
-                    >
-                      {g.name}
-                    </button>
-                  ))}
-                </div>
+                ))}
+                {!showNewCategory && (
+                  <button
+                    onClick={() => setShowNewCategory(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-all border border-dashed border-primary/20"
+                  >
+                    <Plus className="w-3 h-3" /> {t('habits.createCategory')}
+                  </button>
+                )}
               </div>
-            )}
+              {showNewCategory && (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={t('habits.categoryNamePlaceholder')}
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    onKeyDown={async e => {
+                      if (e.key === 'Enter' && newCategoryName.trim()) {
+                        e.preventDefault()
+                        await createGroup({ name: newCategoryName.trim(), icon_name: 'folder', color_hex: colorHex })
+                        setNewCategoryName('')
+                        setShowNewCategory(false)
+                      }
+                    }}
+                    autoFocus
+                    className="bg-secondary/50 border-0 h-8 text-xs flex-1"
+                  />
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={async () => {
+                      if (newCategoryName.trim()) {
+                        await createGroup({ name: newCategoryName.trim(), icon_name: 'folder', color_hex: colorHex })
+                        setNewCategoryName('')
+                        setShowNewCategory(false)
+                      }
+                    }}
+                    disabled={!newCategoryName.trim()}
+                    className="h-8 w-8 shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={() => { setShowNewCategory(false); setNewCategoryName('') }}
+                    className="h-8 w-8 shrink-0 text-muted-foreground"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
 
             {/* Icon */}
             <div className="space-y-3">
