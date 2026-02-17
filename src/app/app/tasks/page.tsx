@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useT } from '@/lib/i18n/provider'
 import { useTasksStore, type SmartView, type SortBy, type GroupBy } from '@/lib/store/tasks-store'
 import { TaskDetailSheet } from '@/components/tasks/task-detail-sheet'
@@ -15,7 +15,7 @@ import {
   Plus, Search, Trash2, Clock, Columns3, List, Inbox, CalendarDays,
   CalendarRange, ListChecks, CheckCircle2, FolderOpen, Tag, ArrowUpDown,
   Group, AlertCircle, ArrowRightCircle, Calendar as CalendarIcon,
-  Circle, Flag, ChevronLeft, ChevronRight, Pencil, SlidersHorizontal, X
+  Circle, Flag, ChevronLeft, ChevronRight, ChevronDown, Pencil, SlidersHorizontal, X
 } from 'lucide-react'
 import type { Task } from '@/lib/types/database'
 import { DynamicIcon } from '@/components/dynamic-icon'
@@ -111,6 +111,7 @@ export default function TasksPage() {
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
 
   // Create project/label dialogs
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
@@ -131,27 +132,45 @@ export default function TasksPage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
+  const handleToggleWithDelay = useCallback((taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    if (!task.is_completed) {
+      setRecentlyCompleted(prev => new Set(prev).add(taskId))
+      toggleTask(taskId)
+      setTimeout(() => {
+        setRecentlyCompleted(prev => {
+          const next = new Set(prev)
+          next.delete(taskId)
+          return next
+        })
+      }, 900)
+    } else {
+      toggleTask(taskId)
+    }
+  }, [tasks, toggleTask])
+
   const parentTasks = useMemo(() => tasks.filter(t => !t.parent_task_id), [tasks])
 
   // ─── Filtering ──────────────────────────────────────────
   const filteredTasks = useMemo(() => {
     let result = parentTasks
 
-    // Smart view filter
+    // Smart view filter — keep recently completed tasks visible
     switch (smartView) {
       case 'today':
-        result = result.filter(t => !t.is_completed && t.due_date && (
+        result = result.filter(t => recentlyCompleted.has(t.id) || (!t.is_completed && t.due_date && (
           isDueToday(t.due_date) || isDueOverdue(t.due_date)
-        ))
+        )))
         break
       case 'upcoming':
-        result = result.filter(t => !t.is_completed && t.due_date && isDueInNextDays(t.due_date, 7))
+        result = result.filter(t => recentlyCompleted.has(t.id) || (!t.is_completed && t.due_date && isDueInNextDays(t.due_date, 7)))
         break
       case 'completed':
         result = result.filter(t => t.is_completed)
         break
       case 'inbox':
-        result = result.filter(t => !t.is_completed)
+        result = result.filter(t => recentlyCompleted.has(t.id) || !t.is_completed)
         break
       case 'all':
         // Show everything
@@ -182,7 +201,7 @@ export default function TasksPage() {
     }
 
     return result
-  }, [parentTasks, smartView, selectedProjectId, selectedLabelId, priorityFilter, searchQuery, store.projectLinks, store.labelLinks])
+  }, [parentTasks, smartView, selectedProjectId, selectedLabelId, priorityFilter, searchQuery, store.projectLinks, store.labelLinks, recentlyCompleted])
 
   // ─── Sorting ────────────────────────────────────────────
   const sortedTasks = useMemo(() => {
@@ -474,19 +493,71 @@ export default function TasksPage() {
               <h1 className="text-xl lg:text-2xl font-bold tracking-tight">{currentViewLabel}</h1>
               <p className="text-xs text-muted-foreground mt-0.5">{currentViewDesc}</p>
             </div>
-            {!showInlineForm && (
-              <Button
-                onClick={() => setShowInlineForm(true)}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 font-semibold text-xs h-8 shadow-lg shadow-primary/10"
-              >
-                <Plus className="w-3.5 h-3.5" /> {t('tasks.addTask')}
-              </Button>
-            )}
+{/* Add task button removed — inline card below serves the same purpose */}
           </div>
 
-          {/* Mobile: smart view tabs + filter button */}
+          {/* Mobile: project dropdown + smart view tabs + label filter */}
           <div className="lg:hidden space-y-2">
+            {/* Row 1: Project dropdown (priority) + smart views + labels */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {/* Project select — like priority filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
+                    selectedProjectId ? 'ring-1 shadow-sm' : 'bg-secondary text-muted-foreground'
+                  )}
+                  style={selectedProjectId ? (() => {
+                    const p = projects.find(p => p.id === selectedProjectId)
+                    return p ? { backgroundColor: `${p.color_hex}15`, color: p.color_hex, boxShadow: `0 0 0 1px ${p.color_hex}30` } : undefined
+                  })() : undefined}
+                  >
+                    <FolderOpen className="w-3 h-3" />
+                    {selectedProjectId
+                      ? projects.find(p => p.id === selectedProjectId)?.name ?? t('tasks.projects')
+                      : t('tasks.projects')}
+                    <ChevronDown className="w-3 h-3 opacity-60" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">{t('tasks.projects')}</DropdownMenuLabel>
+                  {projects.map(p => {
+                    const active = selectedProjectId === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          if (active) { setSelectedProjectId(null) }
+                          else { setSelectedProjectId(p.id); setSelectedLabelId(null); setSmartView('all') }
+                        }}
+                        className="flex items-center gap-2.5 w-full px-2 py-1.5 text-xs hover:bg-accent rounded transition-colors"
+                      >
+                        <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center', active ? 'bg-primary border-primary' : 'border-border')}>
+                          {active && <span className="text-[8px] text-primary-foreground font-bold">✓</span>}
+                        </div>
+                        <DynamicIcon name={p.icon_name} className="w-3.5 h-3.5 shrink-0" style={{ color: p.color_hex }} />
+                        <span className="truncate">{p.name}</span>
+                      </button>
+                    )
+                  })}
+                  {selectedProjectId && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <button
+                        onClick={() => setSelectedProjectId(null)}
+                        className="w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
+                      >
+                        {t('common.clear')}
+                      </button>
+                    </>
+                  )}
+                  {projects.length === 0 && (
+                    <p className="px-2 py-2 text-xs text-muted-foreground">{t('tasks.noProjectsCreated')}</p>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Smart views */}
               {SMART_VIEWS.map(view => {
                 const active = smartView === view.id && !selectedProjectId && !selectedLabelId
                 return (
@@ -502,18 +573,20 @@ export default function TasksPage() {
                   </button>
                 )
               })}
-              <button
-                onClick={() => setMobileSidebarOpen(true)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
-                  (selectedProjectId || selectedLabelId) ? 'bg-primary/10 text-primary ring-1 ring-primary/20' : 'bg-secondary text-muted-foreground'
-                )}
-              >
-                <SlidersHorizontal className="w-3 h-3" />
-                {selectedProjectId ? projects.find(p => p.id === selectedProjectId)?.name
-                  : selectedLabelId ? labels.find(l => l.id === selectedLabelId)?.name
-                  : t('tasks.projects') + ' / ' + t('tasks.labelsNav')}
-              </button>
+
+              {/* Labels filter */}
+              {labels.length > 0 && (
+                <button
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
+                    selectedLabelId ? 'bg-primary/10 text-primary ring-1 ring-primary/20' : 'bg-secondary text-muted-foreground'
+                  )}
+                >
+                  <Tag className="w-3 h-3" />
+                  {selectedLabelId ? labels.find(l => l.id === selectedLabelId)?.name : t('tasks.labelsNav')}
+                </button>
+              )}
             </div>
           </div>
 
@@ -644,10 +717,15 @@ export default function TasksPage() {
           ) : (
             <button
               onClick={() => setShowInlineForm(true)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors group text-sm"
+              className="w-full flex items-center gap-3 px-4 py-4 rounded-xl border-2 border-dashed border-primary/20 hover:border-primary/50 bg-primary/[0.03] hover:bg-primary/[0.06] text-muted-foreground hover:text-primary transition-all group text-sm"
             >
-              <Plus className="w-4 h-4 group-hover:text-primary transition-colors" />
-              <span>{t('tasks.addTask')}</span>
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
+                <Plus className="w-4.5 h-4.5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-foreground group-hover:text-primary transition-colors">{t('tasks.addTask')}</p>
+                <p className="text-[11px] text-muted-foreground">{t('tasks.addTaskHint') || 'Click to create a new task'}</p>
+              </div>
             </button>
           )}
         </div>
@@ -674,7 +752,8 @@ export default function TasksPage() {
                         subtaskDone={getSubtasks(task.id).filter(s => s.is_completed).length}
                         labels={getLabelsForTask(task.id)}
                         isSelected={selectedTaskId === task.id}
-                        onToggle={() => toggleTask(task.id)}
+                        isJustCompleted={recentlyCompleted.has(task.id)}
+                        onToggle={() => handleToggleWithDelay(task.id)}
                         onSelect={() => setSelectedTaskId(task.id)}
                         onDelete={() => deleteTask(task.id)}
                       />
@@ -1002,7 +1081,7 @@ export default function TasksPage() {
                   return (
                     <button
                       key={p.id}
-                      onClick={() => { setSelectedProjectId(active ? null : p.id); setSelectedLabelId(null); setMobileSidebarOpen(false) }}
+                      onClick={() => { setSelectedProjectId(active ? null : p.id); setSelectedLabelId(null); if (!active) setSmartView('all'); setMobileSidebarOpen(false) }}
                       className={cn(
                         'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
                         active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -1257,13 +1336,14 @@ function CalendarView({
 
 // ─── Task Row Component ───────────────────────────────────
 function TaskRow({
-  task, subtaskCount, subtaskDone, labels, isSelected, onToggle, onSelect, onDelete
+  task, subtaskCount, subtaskDone, labels, isSelected, isJustCompleted, onToggle, onSelect, onDelete
 }: {
   task: Task
   subtaskCount: number
   subtaskDone: number
   labels: { id: string; name: string; color_hex: string }[]
   isSelected: boolean
+  isJustCompleted?: boolean
   onToggle: () => void
   onSelect: () => void
   onDelete: () => void
@@ -1274,25 +1354,33 @@ function TaskRow({
   return (
     <div
       className={cn(
-        'flex items-start gap-3 px-4 py-3 hover:bg-accent/30 transition-colors group cursor-pointer',
-        isSelected && 'bg-primary/5 border-l-2 border-l-primary'
+        'flex items-start gap-3 px-4 py-3 hover:bg-accent/30 transition-all duration-500 group cursor-pointer',
+        isSelected && 'bg-primary/5 border-l-2 border-l-primary',
+        isJustCompleted && 'bg-emerald-500/5 opacity-60'
       )}
       onClick={onSelect}
     >
       <button onClick={(e) => { e.stopPropagation(); onToggle() }} className="mt-0.5 shrink-0">
         <div className={cn(
-          'w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-all',
+          'w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-all duration-300',
           task.is_completed
-            ? 'border-primary bg-primary shadow-sm shadow-primary/20'
+            ? 'border-emerald-500 bg-emerald-500 shadow-sm shadow-emerald-500/30 scale-110'
             : 'border-border hover:border-muted-foreground'
         )}>
-          {task.is_completed && <span className="text-primary-foreground text-[9px] font-bold">✓</span>}
+          {task.is_completed && (
+            <svg className="w-2.5 h-2.5 text-white animate-in zoom-in-50 duration-200" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 6.5L5 9.5L10 3" />
+            </svg>
+          )}
         </div>
       </button>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={cn('text-sm font-medium leading-snug truncate', task.is_completed && 'line-through text-muted-foreground')}>{task.title}</p>
+          <p className={cn(
+            'text-sm font-medium leading-snug truncate transition-all duration-300',
+            task.is_completed && 'line-through text-muted-foreground'
+          )}>{task.title}</p>
           <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: PRIORITY_LABELS[task.priority].color }} />
         </div>
 

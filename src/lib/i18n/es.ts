@@ -285,6 +285,7 @@ const es: TranslationDict = {
     labelsNav: 'Etiquetas',
     createLabel: 'Crear una etiqueta',
     addTask: 'Añadir tarea',
+    addTaskHint: 'Haz clic para crear una nueva tarea',
     search: 'Buscar...',
     sort: 'Ordenar',
     sortBy: 'Ordenar por',

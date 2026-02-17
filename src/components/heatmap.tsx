@@ -5,7 +5,7 @@ import { format, startOfYear, getDay, startOfDay, startOfMonth, endOfMonth, each
 import type { HabitEntry } from '@/lib/types/database'
 import { generateYearHeatmapData, type HeatmapDay } from '@/lib/utils/stats'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { NumericInputPopover, HabitInputPopoverContent } from '@/components/habits/numeric-input-dialog'
+import { HabitInputPopoverContent } from '@/components/habits/numeric-input-dialog'
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -285,6 +285,14 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
   const [month, setMonth] = useState(new Date())
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const isNumeric = trackingType === 'numeric'
+  const gridRef = useRef<HTMLDivElement>(null)
+
+  // Floating popover state (single shared popover, positioned at clicked cell)
+  const [popover, setPopover] = useState<{ dateStr: string; x: number; y: number } | null>(null)
+  const popoverOpen = popover !== null
+
+  const hasSessions = habit?.sessions && (habit.sessions as any[]).length > 0
+  const needsPopoverForHabit = habit && onPopoverSubmit && (isNumeric || hasSessions)
 
   const entryMap = useMemo(() => {
     const map = new Map<string, { status: string; value: number | null }>()
@@ -300,7 +308,6 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
 
   // Calculate stats for this month
   const monthCompleted = days.filter(d => entryMap.get(format(d, 'yyyy-MM-dd'))?.status === 'completed').length
-  const monthSkipped = days.filter(d => entryMap.get(format(d, 'yyyy-MM-dd'))?.status === 'skipped').length
   const monthPast = days.filter(d => d <= today).length
   const monthRate = monthPast > 0 ? Math.round((monthCompleted / monthPast) * 100) : 0
 
@@ -316,6 +323,24 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
     if (entry?.status === 'skipped') return '#f59e0b'
     return 'var(--heatmap-empty)'
   }
+
+  const handleCellClick = useCallback((dateStr: string, day: Date, cellEl: HTMLElement) => {
+    if (day > today) return
+    const entry = entryMap.get(dateStr)
+    const hasExistingEntry = entry?.status === 'completed' || entry?.status === 'skipped'
+
+    if (!hasExistingEntry && needsPopoverForHabit && gridRef.current) {
+      const gridRect = gridRef.current.getBoundingClientRect()
+      const cellRect = cellEl.getBoundingClientRect()
+      setPopover({
+        dateStr,
+        x: cellRect.left - gridRect.left + cellRect.width / 2,
+        y: cellRect.top - gridRect.top + cellRect.height,
+      })
+    } else {
+      onToggle?.(dateStr)
+    }
+  }, [today, entryMap, needsPopoverForHabit, onToggle])
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -341,7 +366,7 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
       </div>
 
       {/* Calendar grid — constrained width, square cells */}
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto relative" ref={gridRef}>
         {/* Weekday headers */}
         <div className="grid grid-cols-7 gap-1.5 mb-1">
           {WEEKDAY_LABELS.map(d => (
@@ -351,14 +376,14 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
           ))}
         </div>
 
-        {/* Day grid — square cells */}
+        {/* Day grid — square cells, no wrappers that break the grid */}
         <div className="grid grid-cols-7 gap-1.5">
           {/* Empty padding cells */}
           {Array.from({ length: startDayOfWeek }).map((_, i) => (
             <div key={`pad-${i}`} className="aspect-square" />
           ))}
 
-          {/* Day cells */}
+          {/* Day cells — all rendered identically as direct grid children */}
           {days.map(day => {
             const dateStr = format(day, 'yyyy-MM-dd')
             const isToday = dateStr === todayStr
@@ -366,51 +391,28 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
             const entry = entryMap.get(dateStr)
             const completed = entry?.status === 'completed'
             const skipped = entry?.status === 'skipped'
-            const hasEntry = completed || skipped
-            const hasSessions = habit?.sessions && (habit.sessions as any[]).length > 0
-            const needsPopover = habit && onPopoverSubmit && !isFuture && (isNumeric || hasSessions)
-
-            const cellButton = (
-              <button
-                onClick={() => onToggle?.(dateStr)}
-                disabled={isFuture}
-                className={cn(
-                  'aspect-square rounded-md flex items-center justify-center transition-all',
-                  !isFuture && 'hover:brightness-110 hover:scale-105 cursor-pointer active:scale-95',
-                  isFuture && 'opacity-30 cursor-default',
-                  isToday && 'ring-2 ring-foreground/30 ring-offset-1 ring-offset-background'
-                )}
-                style={{ backgroundColor: getCellColor(dateStr, day) }}
-              >
-                <span className={cn(
-                  'text-[11px] font-semibold leading-none',
-                  completed ? 'text-[var(--icon-on-color)]' : skipped ? 'text-[var(--icon-on-color)]' : isFuture ? 'text-[var(--heatmap-text-faint)]' : 'text-[var(--heatmap-text-dim)]'
-                )}>
-                  {day.getDate()}
-                </span>
-              </button>
-            )
-
-            if (needsPopover) {
-              return (
-                <NumericInputPopover
-                  key={dateStr}
-                  habit={habit}
-                  date={dateStr}
-                  entries={entries}
-                  hasEntry={hasEntry}
-                  onPassthrough={() => onToggle?.(dateStr)}
-                  onSubmit={(opts) => onPopoverSubmit(dateStr, opts)}
-                >
-                  {cellButton}
-                </NumericInputPopover>
-              )
-            }
 
             return (
               <Tooltip key={dateStr}>
                 <TooltipTrigger asChild>
-                  {cellButton}
+                  <button
+                    onClick={(e) => handleCellClick(dateStr, day, e.currentTarget)}
+                    disabled={isFuture}
+                    className={cn(
+                      'aspect-square rounded-md flex items-center justify-center transition-all',
+                      !isFuture && 'hover:brightness-110 hover:scale-105 cursor-pointer active:scale-95',
+                      isFuture && 'opacity-30 cursor-default',
+                      isToday && 'ring-2 ring-foreground/30 ring-offset-1 ring-offset-background'
+                    )}
+                    style={{ backgroundColor: getCellColor(dateStr, day) }}
+                  >
+                    <span className={cn(
+                      'text-[11px] font-semibold leading-none',
+                      completed ? 'text-[var(--icon-on-color)]' : skipped ? 'text-[var(--icon-on-color)]' : isFuture ? 'text-[var(--heatmap-text-faint)]' : 'text-[var(--heatmap-text-dim)]'
+                    )}>
+                      {day.getDate()}
+                    </span>
+                  </button>
                 </TooltipTrigger>
                 {isNumeric && completed && entry?.value != null && (
                   <TooltipContent side="top" className="text-xs bg-popover border-border">
@@ -424,6 +426,41 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
             )
           })}
         </div>
+
+        {/* Single floating popover — anchored to clicked cell */}
+        {habit && onPopoverSubmit && (
+          <Popover open={popoverOpen} onOpenChange={(open) => { if (!open) setPopover(null) }}>
+            <PopoverAnchor asChild>
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  left: popover ? popover.x : 0,
+                  top: popover ? popover.y : 0,
+                  width: 1,
+                  height: 1,
+                }}
+              />
+            </PopoverAnchor>
+            {popover && (
+              <PopoverContent
+                className="w-[280px] p-0 shadow-xl border-border"
+                side="bottom"
+                align="center"
+                sideOffset={8}
+                collisionPadding={16}
+                onOpenAutoFocus={e => e.preventDefault()}
+              >
+                <HabitInputPopoverContent
+                  habit={habit}
+                  date={popover.dateStr}
+                  entries={entries}
+                  onSubmit={(opts) => { onPopoverSubmit(popover.dateStr, opts); setPopover(null) }}
+                  onClose={() => setPopover(null)}
+                />
+              </PopoverContent>
+            )}
+          </Popover>
+        )}
       </div>
     </div>
     </TooltipProvider>

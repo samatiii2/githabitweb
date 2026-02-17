@@ -285,6 +285,7 @@ const ar: TranslationDict = {
     labelsNav: 'التصنيفات',
     createLabel: 'إنشاء تصنيف',
     addTask: 'إضافة مهمة',
+    addTaskHint: 'اضغط لإنشاء مهمة جديدة',
     search: 'بحث...',
     sort: 'ترتيب',
     sortBy: 'ترتيب حسب',

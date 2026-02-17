@@ -14,13 +14,16 @@ import { Flame, CheckCircle } from 'lucide-react'
 interface Props {
   habit: Habit
   entries: HabitEntry[]
+  allEntries?: HabitEntry[]
   isCompletedToday: boolean
   isSkippedToday: boolean
   onToggle: () => void
+  onToggleDate?: (dateStr: string) => void
   onSubmit: (opts: { sessionId?: string; value?: number }) => void
+  onSubmitDate?: (date: string, opts: { sessionId?: string; value?: number }) => void
 }
 
-export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedToday, onToggle, onSubmit }: Props) {
+export function HabitHeatmapCard({ habit, entries, allEntries, isCompletedToday, isSkippedToday, onToggle, onToggleDate, onSubmit, onSubmitDate }: Props) {
   const streak = useMemo(() => calculateStreak(entries), [entries])
   const total = useMemo(() => calculateTotal(entries), [entries])
   const todayDate = format(new Date(), 'yyyy-MM-dd')
@@ -53,7 +56,7 @@ export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedTo
         <NumericInputPopover
           habit={habit}
           date={todayDate}
-          entries={entries}
+          entries={allEntries ?? entries}
           hasEntry={isCompletedToday || isSkippedToday}
           onPassthrough={onToggle}
           onSubmit={onSubmit}
@@ -67,9 +70,23 @@ export function HabitHeatmapCard({ habit, entries, isCompletedToday, isSkippedTo
         </NumericInputPopover>
       </div>
 
-      {/* Heatmap */}
+      {/* Heatmap — interactive: click cells to toggle or input values */}
       <div className="mt-3">
-        <Heatmap entries={entries} colorHex={habit.color_hex} cellSize={14} gap={2.5} showMonthLabels showDayLabels={false} />
+        <Heatmap
+          entries={entries}
+          colorHex={habit.color_hex}
+          cellSize={14}
+          gap={2.5}
+          showMonthLabels
+          showDayLabels={false}
+          onToggle={onToggleDate}
+          targetValue={habit.target_value}
+          trackingType={habit.tracking_type}
+          unit={habit.unit}
+          habit={habit}
+          allEntries={allEntries ?? entries}
+          onPopoverSubmit={onSubmitDate}
+        />
       </div>
     </div>
   )

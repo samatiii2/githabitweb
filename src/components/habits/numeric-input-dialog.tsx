@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { useT } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils'
-import { Minus, Plus, Check, CheckCircle2, ChevronLeft } from 'lucide-react'
+import { Minus, Plus, Check, CheckCircle2, ChevronLeft, X } from 'lucide-react'
 import { startOfWeek, endOfWeek, format } from 'date-fns'
 import type { Habit, HabitEntry, HabitSession } from '@/lib/types/database'
 
@@ -29,11 +29,13 @@ interface Props {
   hasEntry: boolean
   onPassthrough: () => void
   onSubmit: (opts: { sessionId?: string; value?: number }) => void
+  /** When true, the wrapper fills its parent (useful inside CSS grids) */
+  fillParent?: boolean
 }
 
 export function NumericInputPopover({
   children, habit, date, entries, hasEntry,
-  onPassthrough, onSubmit,
+  onPassthrough, onSubmit, fillParent,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<'sessions' | 'numeric'>('sessions')
@@ -78,7 +80,7 @@ export function NumericInputPopover({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
-        <div className="inline-flex" onClickCapture={handleCapture}>
+        <div className={fillParent ? 'w-full h-full' : 'inline-flex'} onClickCapture={handleCapture}>
           {children}
         </div>
       </PopoverAnchor>
@@ -91,7 +93,7 @@ export function NumericInputPopover({
         onOpenAutoFocus={e => e.preventDefault()}
       >
         {/* Header — always visible */}
-        <PopoverHeader habit={habit} date={date} />
+        <PopoverHeader habit={habit} date={date} onClose={() => setOpen(false)} />
 
         {step === 'sessions' && (
           <SessionStep
@@ -108,6 +110,7 @@ export function NumericInputPopover({
             sessionLabel={pickedSession?.label}
             onSubmit={handleNumericConfirm}
             onBack={hasSessions ? () => { setStep('sessions'); setPickedSession(null) } : undefined}
+            onCancel={() => setOpen(false)}
           />
         )}
       </PopoverContent>
@@ -157,7 +160,7 @@ export function HabitInputPopoverContent({ habit, date, entries, onSubmit, onClo
 
   return (
     <>
-      <PopoverHeader habit={habit} date={date} />
+      <PopoverHeader habit={habit} date={date} onClose={onClose} />
       {step === 'sessions' && (
         <SessionStep habit={habit} entries={entries} date={date} onSelect={handleSelectSession} />
       )}
@@ -167,6 +170,7 @@ export function HabitInputPopoverContent({ habit, date, entries, onSubmit, onClo
           sessionLabel={pickedSession?.label}
           onSubmit={handleNumericConfirm}
           onBack={hasSessions ? () => { setStep('sessions'); setPickedSession(null) } : undefined}
+          onCancel={onClose}
         />
       )}
     </>
@@ -177,10 +181,8 @@ export function HabitInputPopoverContent({ habit, date, entries, onSubmit, onClo
 /*  Header                                                             */
 /* ------------------------------------------------------------------ */
 
-function PopoverHeader({ habit, date }: { habit: Habit; date: string }) {
-  const weekStart = startOfWeek(new Date(date + 'T12:00:00'), { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(new Date(date + 'T12:00:00'), { weekStartsOn: 1 })
-  const weekLabel = `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d')}`
+function PopoverHeader({ habit, date, onClose }: { habit: Habit; date: string; onClose?: () => void }) {
+  const dateLabel = format(new Date(date + 'T12:00:00'), 'EEE, MMM d')
 
   return (
     <div className="flex items-center gap-2.5 px-4 pt-3 pb-2 border-b border-border/50">
@@ -192,8 +194,16 @@ function PopoverHeader({ habit, date }: { habit: Habit; date: string }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold truncate">{habit.title}</p>
-        <p className="text-[10px] text-muted-foreground">{weekLabel}</p>
+        <p className="text-[10px] text-muted-foreground">{dateLabel}</p>
       </div>
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="p-1 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground shrink-0"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   )
 }
@@ -307,11 +317,12 @@ function SessionStep({ habit, entries, date, onSelect }: {
 /*  Numeric Step                                                       */
 /* ------------------------------------------------------------------ */
 
-function NumericStep({ habit, sessionLabel, onSubmit, onBack }: {
+function NumericStep({ habit, sessionLabel, onSubmit, onBack, onCancel }: {
   habit: Habit
   sessionLabel?: string | null
   onSubmit: (value: number) => void
   onBack?: () => void
+  onCancel?: () => void
 }) {
   const t = useT()
   const target = habit.target_value ?? 0
@@ -434,15 +445,25 @@ function NumericStep({ habit, sessionLabel, onSubmit, onBack }: {
           </div>
         )}
 
-        <button
-          onClick={handleSubmit}
-          disabled={numValue <= 0}
-          className="w-full h-9 rounded-lg text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
-          style={{ backgroundColor: habit.color_hex }}
-        >
-          <Check className="w-3.5 h-3.5" />
-          {t('common.confirm')}
-        </button>
+        <div className="flex items-center gap-2">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="flex-1 h-9 rounded-lg text-xs font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 flex items-center justify-center gap-1.5 transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={numValue <= 0}
+            className={cn('h-9 rounded-lg text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40', onCancel ? 'flex-[2]' : 'w-full')}
+            style={{ backgroundColor: habit.color_hex }}
+          >
+            <Check className="w-3.5 h-3.5" />
+            {t('common.confirm')}
+          </button>
+        </div>
       </div>
     </div>
   )

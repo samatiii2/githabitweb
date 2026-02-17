@@ -307,18 +307,21 @@ export default function DashboardPage() {
               key={habit.id}
               habit={habit}
               entries={entriesForHabit(habit.id)}
+              allEntries={entries}
               isCompletedToday={isCompletedToday(habit.id)}
               isSkippedToday={isSkippedToday(habit.id)}
               onToggle={() => handleToggle(habit.id)}
+              onToggleDate={(dateStr) => handleToggle(habit.id, dateStr)}
               onSubmit={(opts) => handlePopoverSubmit(habit.id, todayDate, opts)}
+              onSubmitDate={(date, opts) => handlePopoverSubmit(habit.id, date, opts)}
             />
           ))}
         </div>
       )}
 
-      {/* Month view — compact cards, more per row */}
+      {/* Month view — calendar cards with interactive cells */}
       {viewMode === 'month' && filteredHabits.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredHabits.map(habit => (
             <HabitMonthCard
               key={habit.id}
