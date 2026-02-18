@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '@/lib/i18n/provider'
 import { useTasksStore, type SmartView, type SortBy, type GroupBy } from '@/lib/store/tasks-store'
 import { TaskDetailSheet } from '@/components/tasks/task-detail-sheet'
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover'
 import { COLORS } from '@/lib/constants'
 import {
   Plus, Search, Trash2, Clock, Columns3, List, Inbox, CalendarDays,
@@ -17,7 +18,7 @@ import {
   Group, AlertCircle, ArrowRightCircle, Calendar as CalendarIcon,
   Circle, Flag, ChevronLeft, ChevronRight, ChevronDown, Pencil, SlidersHorizontal, X
 } from 'lucide-react'
-import type { Task } from '@/lib/types/database'
+import type { Task, TaskProject } from '@/lib/types/database'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { cn } from '@/lib/utils'
 import { PRIORITY_LABELS } from '@/lib/constants'
@@ -104,7 +105,7 @@ export default function TasksPage() {
     setSmartView, setViewMode, setSearchQuery, setSortBy, setSortDirection, setGroupBy,
     setPriorityFilter, setSelectedProjectId, setSelectedLabelId, setSelectedTaskId,
     fetchAll, createTask, toggleTask, deleteTask, getSubtasks, getLabelsForTask,
-    createProject, updateProject, createLabel,
+    createProject, updateProject, deleteProject, createLabel,
   } = store
 
   const [showInlineForm, setShowInlineForm] = useState(false)
@@ -433,12 +434,20 @@ export default function TasksPage() {
                     <span className="flex-1 text-left truncate">{p.name}</span>
                     {count > 0 && <span className="text-[10px] text-muted-foreground group-hover/proj:hidden">{count}</span>}
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openEditProject(p) }}
-                    className="absolute right-2 opacity-0 group-hover/proj:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-secondary"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
+                  <div className="absolute right-1 flex items-center gap-0.5 opacity-0 group-hover/proj:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openEditProject(p) }}
+                      className="text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-secondary transition-colors"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={async (e) => { e.stopPropagation(); if (selectedProjectId === p.id) setSelectedProjectId(null); await deleteProject(p.id) }}
+                      className="text-muted-foreground hover:text-destructive p-0.5 rounded hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -519,25 +528,40 @@ export default function TasksPage() {
                     <ChevronDown className="w-3 h-3 opacity-60" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuContent align="start" className="w-52">
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">{t('tasks.projects')}</DropdownMenuLabel>
                   {projects.map(p => {
                     const active = selectedProjectId === p.id
                     return (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          if (active) { setSelectedProjectId(null) }
-                          else { setSelectedProjectId(p.id); setSelectedLabelId(null); setSmartView('all') }
-                        }}
-                        className="flex items-center gap-2.5 w-full px-2 py-1.5 text-xs hover:bg-accent rounded transition-colors"
-                      >
-                        <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center', active ? 'bg-primary border-primary' : 'border-border')}>
-                          {active && <span className="text-[8px] text-primary-foreground font-bold">✓</span>}
+                      <div key={p.id} className="group/cat flex items-center">
+                        <button
+                          onClick={() => {
+                            if (active) { setSelectedProjectId(null) }
+                            else { setSelectedProjectId(p.id); setSelectedLabelId(null); setSmartView('all') }
+                          }}
+                          className="flex items-center gap-2.5 flex-1 min-w-0 px-2 py-1.5 text-xs hover:bg-accent rounded transition-colors"
+                        >
+                          <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0', active ? 'bg-primary border-primary' : 'border-border')}>
+                            {active && <span className="text-[8px] text-primary-foreground font-bold">✓</span>}
+                          </div>
+                          <DynamicIcon name={p.icon_name} className="w-3.5 h-3.5 shrink-0" style={{ color: p.color_hex }} />
+                          <span className="truncate">{p.name}</span>
+                        </button>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover/cat:opacity-100 transition-opacity shrink-0 pr-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openEditProject(p) }}
+                            className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={async (e) => { e.stopPropagation(); if (selectedProjectId === p.id) setSelectedProjectId(null); await deleteProject(p.id) }}
+                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </div>
-                        <DynamicIcon name={p.icon_name} className="w-3.5 h-3.5 shrink-0" style={{ color: p.color_hex }} />
-                        <span className="truncate">{p.name}</span>
-                      </button>
+                      </div>
                     )
                   })}
                   {selectedProjectId && (
@@ -851,6 +875,8 @@ export default function TasksPage() {
             onSelectTask={setSelectedTaskId}
             selectedTaskId={selectedTaskId}
             getLabelsForTask={getLabelsForTask}
+            onCreateTask={handleInlineCreate}
+            projects={projects}
           />
         )}
       </div>
@@ -1002,6 +1028,22 @@ export default function TasksPage() {
             <Button onClick={handleSaveProject} disabled={!editProjectName.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold h-10">
               {t('common.saveChanges')}
             </Button>
+
+            <div className="pt-2 border-t border-border">
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  if (editProjectId) {
+                    if (selectedProjectId === editProjectId) setSelectedProjectId(null)
+                    await deleteProject(editProjectId)
+                    setEditProjectOpen(false)
+                  }
+                }}
+                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 gap-2 text-sm"
+              >
+                <Trash2 className="w-4 h-4" /> {t('tasks.deleteProject')}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1079,18 +1121,33 @@ export default function TasksPage() {
                   const count = store.projectLinks.filter(l => l.project_id === p.id).length
                   const active = selectedProjectId === p.id
                   return (
-                    <button
-                      key={p.id}
-                      onClick={() => { setSelectedProjectId(active ? null : p.id); setSelectedLabelId(null); if (!active) setSmartView('all'); setMobileSidebarOpen(false) }}
-                      className={cn(
-                        'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
-                        active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                      )}
-                    >
-                      <DynamicIcon name={p.icon_name} className="w-4.5 h-4.5 shrink-0" style={{ color: p.color_hex }} />
-                      <span className="flex-1 text-left truncate">{p.name}</span>
-                      {count > 0 && <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">{count}</span>}
-                    </button>
+                    <div key={p.id} className="flex items-center">
+                      <button
+                        onClick={() => { setSelectedProjectId(active ? null : p.id); setSelectedLabelId(null); if (!active) setSmartView('all'); setMobileSidebarOpen(false) }}
+                        className={cn(
+                          'flex items-center gap-3 flex-1 min-w-0 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                          active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                        )}
+                      >
+                        <DynamicIcon name={p.icon_name} className="w-4.5 h-4.5 shrink-0" style={{ color: p.color_hex }} />
+                        <span className="flex-1 text-left truncate">{p.name}</span>
+                        {count > 0 && <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">{count}</span>}
+                      </button>
+                      <div className="flex items-center gap-1 shrink-0 pr-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openEditProject(p); setMobileSidebarOpen(false) }}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={async (e) => { e.stopPropagation(); if (selectedProjectId === p.id) setSelectedProjectId(null); await deleteProject(p.id) }}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   )
                 })}
                 {projects.length === 0 && (
@@ -1153,6 +1210,7 @@ export default function TasksPage() {
 // ─── Calendar View Component ──────────────────────────────
 function CalendarView({
   tasks, month, setMonth, selectedDay, onSelectDay, onSelectTask, selectedTaskId, getLabelsForTask,
+  onCreateTask, projects,
 }: {
   tasks: Task[]
   month: Date
@@ -1162,8 +1220,14 @@ function CalendarView({
   onSelectTask: (id: string) => void
   selectedTaskId: string | null
   getLabelsForTask: (id: string) => { id: string; name: string; color_hex: string }[]
+  onCreateTask: (data: { title: string; note: string | null; due_date: string | null; priority: number; recurrence: string; recurrence_rule?: any; projectId?: string | null }) => Promise<void>
+  projects: TaskProject[]
 }) {
   const t = useT()
+  const gridRef = useRef<HTMLDivElement>(null)
+  const [popover, setPopover] = useState<{ dateStr: string; x: number; y: number; w: number; h: number } | null>(null)
+  const popoverOpen = !!popover
+
   const WEEKDAY_HEADERS = useMemo(() => [
     t('tasks.weekMon'), t('tasks.weekTue'), t('tasks.weekWed'), t('tasks.weekThu'),
     t('tasks.weekFri'), t('tasks.weekSat'), t('tasks.weekSun'),
@@ -1186,6 +1250,22 @@ function CalendarView({
   }, [tasks, days])
 
   const selectedDayTasks = selectedDay ? (tasksByDay.get(selectedDay) || []) : []
+
+  const handleAddForDay = (dateStr: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const cellEl = (e.currentTarget as HTMLElement).closest('[data-day-cell]') as HTMLElement | null
+    if (!cellEl || !gridRef.current) return
+    const gridRect = gridRef.current.getBoundingClientRect()
+    const cellRect = cellEl.getBoundingClientRect()
+    setPopover({
+      dateStr,
+      x: cellRect.left - gridRect.left,
+      y: cellRect.top - gridRect.top,
+      w: cellRect.width,
+      h: cellRect.height,
+    })
+    onSelectDay(dateStr)
+  }
 
   return (
     <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-6">
@@ -1223,8 +1303,8 @@ function CalendarView({
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
+      {/* Calendar grid (relative for popover anchor) */}
+      <div ref={gridRef} className="grid grid-cols-7 gap-1 relative">
         {/* Padding */}
         {Array.from({ length: startPadding }).map((_, i) => (
           <div key={`pad-${i}`} className="min-h-[80px] lg:min-h-[100px]" />
@@ -1239,11 +1319,12 @@ function CalendarView({
           const isWeekend = getDay(day) === 0 || getDay(day) === 6
 
           return (
-            <button
+            <div
               key={dateStr}
+              data-day-cell={dateStr}
               onClick={() => onSelectDay(isSelected ? null : dateStr)}
               className={cn(
-                'min-h-[80px] lg:min-h-[100px] rounded-lg p-1.5 text-left transition-all border',
+                'min-h-[80px] lg:min-h-[100px] rounded-lg p-1.5 text-left transition-all border cursor-pointer group/day relative',
                 isSelected
                   ? 'border-primary/40 bg-primary/5'
                   : isToday
@@ -1252,13 +1333,21 @@ function CalendarView({
                 isWeekend && !isSelected && !isToday && 'bg-secondary/20'
               )}
             >
-              <span className={cn(
-                'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold',
-                isToday && 'bg-primary text-primary-foreground',
-                !isToday && 'text-muted-foreground'
-              )}>
-                {day.getDate()}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold',
+                  isToday && 'bg-primary text-primary-foreground',
+                  !isToday && 'text-muted-foreground'
+                )}>
+                  {day.getDate()}
+                </span>
+                <button
+                  onClick={(e) => handleAddForDay(dateStr, e)}
+                  className="w-5 h-5 rounded-md flex items-center justify-center opacity-0 group-hover/day:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
 
               {/* Task indicators */}
               <div className="mt-0.5 space-y-0.5">
@@ -1276,9 +1365,44 @@ function CalendarView({
                   <span className="text-[9px] text-muted-foreground px-1">{t('tasks.moreCount', { count: dayTasks.length - 3 })}</span>
                 )}
               </div>
-            </button>
+            </div>
           )
         })}
+
+        {/* Floating popover for task creation */}
+        <Popover open={popoverOpen} onOpenChange={(open) => { if (!open) setPopover(null) }}>
+          <PopoverAnchor asChild>
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: popover ? popover.x : 0,
+                top: popover ? popover.y : 0,
+                width: popover ? popover.w : 0,
+                height: popover ? popover.h : 0,
+              }}
+            />
+          </PopoverAnchor>
+          {popover && (
+            <PopoverContent
+              className="w-[340px] p-0 shadow-xl border-border"
+              side="bottom"
+              align="center"
+              sideOffset={6}
+              collisionPadding={16}
+              onOpenAutoFocus={e => e.preventDefault()}
+            >
+              <CalendarTaskPopoverForm
+                dateStr={popover.dateStr}
+                projects={projects}
+                onSubmit={async (data) => {
+                  await onCreateTask(data)
+                  setPopover(null)
+                }}
+                onCancel={() => setPopover(null)}
+              />
+            </PopoverContent>
+          )}
+        </Popover>
       </div>
 
       {/* Selected day detail panel */}
@@ -1288,10 +1412,32 @@ function CalendarView({
             <h3 className="text-sm font-semibold">
               {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d')}
             </h3>
-            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-              {t('tasks.taskCount', { count: selectedDayTasks.length })}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                {t('tasks.taskCount', { count: selectedDayTasks.length })}
+              </span>
+              <button
+                onClick={(e) => {
+                  const cell = gridRef.current?.querySelector(`[data-day-cell="${selectedDay}"]`) as HTMLElement | null
+                  if (cell && gridRef.current) {
+                    const gridRect = gridRef.current.getBoundingClientRect()
+                    const cellRect = cell.getBoundingClientRect()
+                    setPopover({
+                      dateStr: selectedDay,
+                      x: cellRect.left - gridRect.left,
+                      y: cellRect.top - gridRect.top,
+                      w: cellRect.width,
+                      h: cellRect.height,
+                    })
+                  }
+                }}
+                className="w-6 h-6 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
+
           {selectedDayTasks.length > 0 ? (
             <div className="divide-y divide-border">
               {selectedDayTasks.map(task => (
@@ -1324,12 +1470,191 @@ function CalendarView({
               ))}
             </div>
           ) : (
-            <div className="px-4 py-8 text-center text-xs text-muted-foreground">
-              {t('tasks.noTasksForDay')}
+            <div className="px-4 py-8 text-center">
+              <p className="text-xs text-muted-foreground mb-2">{t('tasks.noTasksForDay')}</p>
+              <button
+                onClick={() => {
+                  const cell = gridRef.current?.querySelector(`[data-day-cell="${selectedDay}"]`) as HTMLElement | null
+                  if (cell && gridRef.current) {
+                    const gridRect = gridRef.current.getBoundingClientRect()
+                    const cellRect = cell.getBoundingClientRect()
+                    setPopover({
+                      dateStr: selectedDay,
+                      x: cellRect.left - gridRect.left,
+                      y: cellRect.top - gridRect.top,
+                      w: cellRect.width,
+                      h: cellRect.height,
+                    })
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors border border-dashed border-primary/20"
+              >
+                <Plus className="w-3.5 h-3.5" /> {t('tasks.addTask')}
+              </button>
             </div>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Compact popover form for creating a task from the calendar ──────
+function CalendarTaskPopoverForm({
+  dateStr, projects, onSubmit, onCancel,
+}: {
+  dateStr: string
+  projects: TaskProject[]
+  onSubmit: (data: { title: string; note: string | null; due_date: string | null; priority: number; recurrence: string; recurrence_rule?: any; projectId?: string | null }) => Promise<void>
+  onCancel: () => void
+}) {
+  const t = useT()
+  const [title, setTitle] = useState('')
+  const [priority, setPriority] = useState(4)
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [])
+
+  const handleSubmit = async () => {
+    if (!title.trim() || submitting) return
+    setSubmitting(true)
+    try {
+      await onSubmit({
+        title: title.trim(),
+        note: null,
+        due_date: dateStr,
+        priority,
+        recurrence: 'none',
+        projectId,
+      })
+      setTitle('')
+      setPriority(4)
+      setProjectId(null)
+      requestAnimationFrame(() => inputRef.current?.focus())
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() }
+    if (e.key === 'Escape') onCancel()
+  }
+
+  const dateLabel = format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d')
+  const selectedProject = projects.find(p => p.id === projectId)
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="px-3.5 pt-3 pb-2 flex items-center gap-2 border-b border-border">
+        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+          <CalendarDays className="w-3.5 h-3.5 text-primary" />
+        </div>
+        <span className="text-xs font-semibold text-foreground">{dateLabel}</span>
+      </div>
+
+      {/* Input */}
+      <div className="px-3.5 pt-3 pb-1.5">
+        <input
+          ref={inputRef}
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={t('tasks.addTask')}
+          className="w-full bg-transparent text-sm font-medium placeholder:text-muted-foreground/50 outline-none"
+        />
+      </div>
+
+      {/* Toolbar: Priority + Category */}
+      <div className="px-3 py-2 flex items-center gap-1.5 flex-wrap">
+        {/* Priority chips */}
+        {([1, 2, 3, 4] as const).map(p => (
+          <button
+            key={p}
+            onClick={() => setPriority(p)}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all border',
+              priority === p
+                ? 'border-current/30 shadow-sm'
+                : 'border-transparent hover:bg-secondary text-muted-foreground'
+            )}
+            style={priority === p ? { color: PRIORITY_LABELS[p].color, backgroundColor: `${PRIORITY_LABELS[p].color}15` } : undefined}
+          >
+            <Flag className="w-3 h-3" style={{ color: PRIORITY_LABELS[p].color }} />
+            {p < 4 ? `P${p}` : '-'}
+          </button>
+        ))}
+
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        {/* Category selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all border',
+                selectedProject
+                  ? 'border-current/20'
+                  : 'border-transparent hover:bg-secondary text-muted-foreground'
+              )}
+              style={selectedProject ? { color: selectedProject.color_hex, backgroundColor: `${selectedProject.color_hex}15` } : undefined}
+            >
+              {selectedProject ? (
+                <>
+                  <DynamicIcon name={selectedProject.icon_name} className="w-3 h-3" />
+                  <span className="truncate max-w-[80px]">{selectedProject.name}</span>
+                </>
+              ) : (
+                <>
+                  <FolderOpen className="w-3 h-3" />
+                  {t('tasks.addToProject')}
+                </>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-44">
+            <button
+              onClick={() => setProjectId(null)}
+              className={cn('w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors', !projectId && 'bg-accent')}
+            >
+              <Inbox className="w-3.5 h-3.5 text-blue-400" />
+              <span>{t('tasks.inboxProject')}</span>
+            </button>
+            {projects.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setProjectId(p.id)}
+                className={cn('w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors', projectId === p.id && 'bg-accent')}
+              >
+                <DynamicIcon name={p.icon_name} className="w-3.5 h-3.5" style={{ color: p.color_hex }} />
+                <span className="truncate">{p.name}</span>
+              </button>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Actions */}
+      <div className="px-3 py-2.5 flex items-center justify-end gap-2 border-t border-border bg-secondary/20">
+        <button
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary transition-colors"
+        >
+          {t('common.cancel')}
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={!title.trim() || submitting}
+          className="px-4 py-1.5 text-xs font-semibold rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
+        >
+          {t('tasks.addTask')}
+        </button>
+      </div>
     </div>
   )
 }

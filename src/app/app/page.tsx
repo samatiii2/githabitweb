@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuLab
 import { DynamicIcon } from '@/components/dynamic-icon'
 import {
   Plus, List, Grid3X3, CalendarDays, Search, Flame,
-  Target, TrendingUp, Sparkles, ChevronDown, ChevronUp, FolderOpen, X
+  Target, TrendingUp, Sparkles, ChevronDown, ChevronUp, FolderOpen, X, Pencil, Trash2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -27,7 +27,7 @@ export default function DashboardPage() {
     selectedGroupId, setSelectedGroupId,
     searchQuery, setSearchQuery,
     fetchHabits, fetchEntries, fetchGroups,
-    toggleEntry, upsertEntry, createGroup
+    toggleEntry, upsertEntry, createGroup, updateGroup, deleteGroup
   } = useHabitsStore()
 
   const t = useT()
@@ -35,6 +35,8 @@ export default function DashboardPage() {
   const [showStats, setShowStats] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false)
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [editingGroupName, setEditingGroupName] = useState('')
 
   // Simple toggle for boolean habits or cycling existing entries
   const handleToggle = (habitId: string, date?: string) => {
@@ -43,13 +45,14 @@ export default function DashboardPage() {
   }
 
   // Unified submit from the popover (sessions, numeric, or both)
-  const handlePopoverSubmit = (habitId: string, date: string, opts: { sessionId?: string; value?: number }) => {
+  const handlePopoverSubmit = (habitId: string, date: string, opts: { sessionId?: string; value?: number; optionId?: string }) => {
     upsertEntry({
       habit_id: habitId,
       date,
       status: 'completed',
       value: opts.value ?? null,
       session_id: opts.sessionId ?? null,
+      option_id: opts.optionId ?? null,
     })
   }
 
@@ -250,18 +253,55 @@ export default function DashboardPage() {
 
               {groups.map(g => {
                 const active = selectedGroupId === g.id
-                return (
-                  <button
-                    key={g.id}
-                    onClick={() => setSelectedGroupId(active ? null : g.id)}
-                    className="flex items-center gap-2.5 w-full px-2 py-1.5 text-xs hover:bg-accent rounded transition-colors"
-                  >
-                    <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center', active ? 'bg-primary border-primary' : 'border-border')}>
-                      {active && <span className="text-[8px] text-primary-foreground font-bold">✓</span>}
+                const isEditing = editingGroupId === g.id
+                return isEditing ? (
+                  <div key={g.id} className="px-2 py-1 space-y-1" onClick={e => e.stopPropagation()}>
+                    <Input
+                      value={editingGroupName}
+                      onChange={e => setEditingGroupName(e.target.value)}
+                      onKeyDown={async e => {
+                        if (e.key === 'Enter' && editingGroupName.trim()) {
+                          e.preventDefault()
+                          await updateGroup(g.id, { name: editingGroupName.trim() })
+                          setEditingGroupId(null)
+                        }
+                        if (e.key === 'Escape') setEditingGroupId(null)
+                      }}
+                      autoFocus
+                      className="bg-secondary/50 border-0 h-7 text-xs"
+                    />
+                    <div className="flex gap-1">
+                      <Button size="sm" onClick={async () => { if (editingGroupName.trim()) { await updateGroup(g.id, { name: editingGroupName.trim() }); setEditingGroupId(null) } }} disabled={!editingGroupName.trim()} className="h-6 text-[10px] flex-1">{t('common.save')}</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingGroupId(null)} className="h-6 text-[10px] px-2"><X className="w-3 h-3" /></Button>
                     </div>
-                    <DynamicIcon name={g.icon_name} className="w-3.5 h-3.5 shrink-0" style={{ color: g.color_hex }} />
-                    <span className="truncate">{g.name}</span>
-                  </button>
+                  </div>
+                ) : (
+                  <div key={g.id} className="group/cat flex items-center">
+                    <button
+                      onClick={() => setSelectedGroupId(active ? null : g.id)}
+                      className="flex items-center gap-2.5 flex-1 min-w-0 px-2 py-1.5 text-xs hover:bg-accent rounded transition-colors"
+                    >
+                      <div className={cn('w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0', active ? 'bg-primary border-primary' : 'border-border')}>
+                        {active && <span className="text-[8px] text-primary-foreground font-bold">✓</span>}
+                      </div>
+                      <DynamicIcon name={g.icon_name} className="w-3.5 h-3.5 shrink-0" style={{ color: g.color_hex }} />
+                      <span className="truncate">{g.name}</span>
+                    </button>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover/cat:opacity-100 transition-opacity shrink-0 pr-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingGroupId(g.id); setEditingGroupName(g.name) }}
+                        className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={async (e) => { e.stopPropagation(); if (selectedGroupId === g.id) setSelectedGroupId(null); await deleteGroup(g.id) }}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
                 )
               })}
 

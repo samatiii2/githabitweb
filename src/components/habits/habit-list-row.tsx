@@ -18,8 +18,8 @@ interface Props {
   isSkippedToday: boolean
   onToggle: () => void
   onToggleDate?: (dateStr: string) => void
-  onSubmit: (opts: { sessionId?: string; value?: number }) => void
-  onSubmitDate?: (date: string, opts: { sessionId?: string; value?: number }) => void
+  onSubmit: (opts: { sessionId?: string; value?: number; optionId?: string }) => void
+  onSubmitDate?: (date: string, opts: { sessionId?: string; value?: number; optionId?: string }) => void
 }
 
 export function HabitListRow({ habit, entries, allEntries, isCompletedToday, isSkippedToday, onToggle, onToggleDate, onSubmit, onSubmitDate }: Props) {

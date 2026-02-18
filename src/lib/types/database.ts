@@ -15,6 +15,12 @@ export interface HabitSession {
   label: string
 }
 
+export interface HabitOption {
+  id: string
+  label: string
+  color: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -26,7 +32,7 @@ export interface Database {
           icon_name: string
           color_hex: string
           frequency: 'daily' | 'weekly'
-          tracking_type: 'boolean' | 'numeric' | 'timer'
+          tracking_type: 'boolean' | 'numeric' | 'timer' | 'options'
           group_id: string | null
           weekly_target: number | null
           target_value: number | null
@@ -34,6 +40,7 @@ export interface Database {
           target_minutes: number | null
           tags: string[]
           sessions: HabitSession[] | null
+          options: HabitOption[] | null
           is_archived: boolean
           sort_order: number
           created_at: string
@@ -54,6 +61,7 @@ export interface Database {
           value: number | null
           status: 'completed' | 'skipped'
           session_id: string | null
+          option_id: string | null
           note: string | null
           created_at: string
         }

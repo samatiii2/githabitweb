@@ -22,11 +22,11 @@ interface HeatmapProps {
   rounded?: boolean
   onToggle?: (dateStr: string) => void
   targetValue?: number | null
-  trackingType?: 'boolean' | 'numeric' | 'timer'
+  trackingType?: 'boolean' | 'numeric' | 'timer' | 'options'
   unit?: string | null
   habit?: Habit
   allEntries?: HabitEntry[]
-  onPopoverSubmit?: (date: string, opts: { sessionId?: string; value?: number }) => void
+  onPopoverSubmit?: (date: string, opts: { sessionId?: string; value?: number; optionId?: string }) => void
 }
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -76,7 +76,14 @@ export function Heatmap({
   const popoverOpen = popover !== null
 
   const hasSessions = habit?.sessions && (habit.sessions as any[]).length > 0
-  const needsPopoverForHabit = habit && onPopoverSubmit && (trackingType === 'numeric' || hasSessions)
+  const isOptions = trackingType === 'options'
+  const needsPopoverForHabit = habit && onPopoverSubmit && (trackingType === 'numeric' || hasSessions || isOptions)
+
+  // Build option color map for fast lookup
+  const optionColorMap = useMemo(() => {
+    if (!isOptions || !habit?.options) return new Map<string, string>()
+    return new Map((habit.options as { id: string; color: string }[]).map(o => [o.id, o.color]))
+  }, [isOptions, habit?.options])
 
   const handleCellClick = useCallback((day: HeatmapDay, cellX: number, cellY: number) => {
     if (day.status === 'future') return
@@ -121,6 +128,9 @@ export function Heatmap({
   const getCellColor = (day: HeatmapDay) => {
     if (!day.dateStr) return 'transparent'
     if (day.status === 'completed') {
+      if (isOptions && day.optionId) {
+        return optionColorMap.get(day.optionId) ?? colorHex
+      }
       if (isNumeric && targetValue && targetValue > 0) {
         const opacity = getIntensityOpacity(day.value, targetValue)
         return hexToRgba(colorHex, opacity)
@@ -217,6 +227,10 @@ export function Heatmap({
                         {targetValue ? ` / ${targetValue}` : ''}
                       </p>
                     )}
+                    {isOptions && day.optionId && (() => {
+                      const opt = (habit?.options as { id: string; label: string; color: string }[])?.find(o => o.id === day.optionId)
+                      return opt ? <p className="font-semibold" style={{ color: opt.color }}>{opt.label}</p> : null
+                    })()}
                     {(onToggle || needsPopoverForHabit) && day.status !== 'future' && <p className="text-primary text-[10px] mt-0.5">Click to toggle</p>}
                   </TooltipContent>
                 </Tooltip>
@@ -272,11 +286,11 @@ interface MonthlyHeatmapProps {
   colorHex: string
   onToggle?: (dateStr: string) => void
   targetValue?: number | null
-  trackingType?: 'boolean' | 'numeric' | 'timer'
+  trackingType?: 'boolean' | 'numeric' | 'timer' | 'options'
   unit?: string | null
   /** When provided, cells that need input get an inline popover */
   habit?: Habit
-  onPopoverSubmit?: (date: string, opts: { sessionId?: string; value?: number }) => void
+  onPopoverSubmit?: (date: string, opts: { sessionId?: string; value?: number; optionId?: string }) => void
 }
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -285,6 +299,7 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
   const [month, setMonth] = useState(new Date())
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const isNumeric = trackingType === 'numeric'
+  const isOptions = trackingType === 'options'
   const gridRef = useRef<HTMLDivElement>(null)
 
   // Floating popover state (single shared popover, positioned at clicked cell)
@@ -292,11 +307,17 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
   const popoverOpen = popover !== null
 
   const hasSessions = habit?.sessions && (habit.sessions as any[]).length > 0
-  const needsPopoverForHabit = habit && onPopoverSubmit && (isNumeric || hasSessions)
+  const needsPopoverForHabit = habit && onPopoverSubmit && (isNumeric || hasSessions || isOptions)
+
+  // Option color map for fast lookup
+  const optionColorMap = useMemo(() => {
+    if (!isOptions || !habit?.options) return new Map<string, string>()
+    return new Map((habit.options as { id: string; color: string }[]).map(o => [o.id, o.color]))
+  }, [isOptions, habit?.options])
 
   const entryMap = useMemo(() => {
-    const map = new Map<string, { status: string; value: number | null }>()
-    entries.forEach(e => map.set(e.date, { status: e.status, value: e.value }))
+    const map = new Map<string, { status: string; value: number | null; option_id: string | null }>()
+    entries.forEach(e => map.set(e.date, { status: e.status, value: e.value, option_id: e.option_id }))
     return map
   }, [entries])
 
@@ -315,6 +336,9 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
     const entry = entryMap.get(dateStr)
     if (date > today) return 'var(--heatmap-future)'
     if (entry?.status === 'completed') {
+      if (isOptions && entry.option_id) {
+        return optionColorMap.get(entry.option_id) ?? colorHex
+      }
       if (isNumeric && targetValue && targetValue > 0) {
         return hexToRgba(colorHex, getIntensityOpacity(entry.value, targetValue))
       }
@@ -422,6 +446,14 @@ export function MonthlyHeatmap({ entries, colorHex, onToggle, targetValue, track
                     </p>
                   </TooltipContent>
                 )}
+                {isOptions && completed && entry?.option_id && (() => {
+                  const opt = (habit?.options as { id: string; label: string; color: string }[])?.find(o => o.id === entry.option_id)
+                  return opt ? (
+                    <TooltipContent side="top" className="text-xs bg-popover border-border">
+                      <p className="font-semibold" style={{ color: opt.color }}>{opt.label}</p>
+                    </TooltipContent>
+                  ) : null
+                })()}
               </Tooltip>
             )
           })}
@@ -547,15 +579,21 @@ export function MiniMonthCalendar({ entries, colorHex, month, onToggle, habit, a
   onToggle?: (dateStr: string) => void
   habit?: Habit
   allEntries?: HabitEntry[]
-  onPopoverSubmit?: (date: string, opts: { sessionId?: string; value?: number }) => void
+  onPopoverSubmit?: (date: string, opts: { sessionId?: string; value?: number; optionId?: string }) => void
 }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const today = startOfDay(new Date())
   const svgRef = useRef<HTMLDivElement>(null)
 
+  const isOptions = habit?.tracking_type === 'options'
+  const optionColorMap = useMemo(() => {
+    if (!isOptions || !habit?.options) return new Map<string, string>()
+    return new Map((habit.options as { id: string; color: string }[]).map(o => [o.id, o.color]))
+  }, [isOptions, habit?.options])
+
   const entryMap = useMemo(() => {
-    const map = new Map<string, string>()
-    entries.forEach(e => map.set(e.date, e.status))
+    const map = new Map<string, { status: string; option_id: string | null }>()
+    entries.forEach(e => map.set(e.date, { status: e.status, option_id: e.option_id }))
     return map
   }, [entries])
 
@@ -579,12 +617,12 @@ export function MiniMonthCalendar({ entries, colorHex, month, onToggle, habit, a
 
   const hasSessions = habit?.sessions && (habit.sessions as any[]).length > 0
   const isNumeric = habit?.tracking_type === 'numeric'
-  const needsPopoverForHabit = habit && onPopoverSubmit && (isNumeric || hasSessions)
+  const needsPopoverForHabit = habit && onPopoverSubmit && (isNumeric || hasSessions || isOptions)
 
   const handleCellClick = useCallback((dateStr: string, day: Date, svgX: number, svgY: number) => {
     if (day > today) return
-    const status = entryMap.get(dateStr)
-    const hasExistingEntry = status === 'completed' || status === 'skipped'
+    const entry = entryMap.get(dateStr)
+    const hasExistingEntry = entry?.status === 'completed' || entry?.status === 'skipped'
 
     if (!hasExistingEntry && needsPopoverForHabit && svgRef.current) {
       const containerRect = svgRef.current.getBoundingClientRect()
@@ -612,12 +650,12 @@ export function MiniMonthCalendar({ entries, colorHex, month, onToggle, habit, a
           const y = row * stepVal
           const dateStr = format(day, 'yyyy-MM-dd')
           const isFuture = day > today
-          const status = entryMap.get(dateStr)
+          const entry = entryMap.get(dateStr)
           const isToday = dateStr === todayStr
 
-          const fill = status === 'completed'
-            ? colorHex
-            : status === 'skipped'
+          const fill = entry?.status === 'completed'
+            ? (isOptions && entry.option_id ? (optionColorMap.get(entry.option_id) ?? colorHex) : colorHex)
+            : entry?.status === 'skipped'
               ? '#f59e0b'
               : isFuture
                 ? 'var(--heatmap-future)'

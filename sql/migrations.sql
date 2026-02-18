@@ -89,3 +89,23 @@ CREATE POLICY "Users manage own label links" ON public.task_label_links
     EXISTS (SELECT 1 FROM public.tasks WHERE id = task_id AND user_id = auth.uid())
     AND EXISTS (SELECT 1 FROM public.task_labels WHERE id = label_id AND user_id = auth.uid())
   );
+
+
+-- ════════════════════════════════════════════════════════════
+-- Migration 005: Add 'options' tracking type to habits
+-- Added: habits.options (jsonb), habit_entries.option_id (text)
+-- Purpose: Custom multi-choice tracking (e.g., "no sugar", "medium",
+--          "treated myself") where each option maps to a color
+-- Date: 2026-01
+-- ════════════════════════════════════════════════════════════
+
+-- Add options column to habits
+ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS options jsonb;
+
+-- Add option_id column to habit_entries
+ALTER TABLE public.habit_entries ADD COLUMN IF NOT EXISTS option_id text;
+
+-- Update tracking_type constraint to include 'options'
+ALTER TABLE public.habits DROP CONSTRAINT IF EXISTS habits_tracking_type_check;
+ALTER TABLE public.habits ADD CONSTRAINT habits_tracking_type_check
+  CHECK (tracking_type IN ('boolean', 'numeric', 'timer', 'options'));

@@ -11,10 +11,10 @@ import { COLORS, HABIT_ICONS } from '@/lib/constants'
 import { DynamicIcon } from '@/components/dynamic-icon'
 import { useHabitsStore } from '@/lib/store/habits-store'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Trash2, Pencil, Dumbbell, FolderOpen } from 'lucide-react'
+import { Plus, X, Trash2, Pencil, Dumbbell, FolderOpen, ListChecks } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n/provider'
-import type { Habit, HabitSession } from '@/lib/types/database'
+import type { Habit, HabitSession, HabitOption } from '@/lib/types/database'
 
 interface Props {
   habit: Habit
@@ -41,6 +41,9 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
   const [saving, setSaving] = useState(false)
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [habitOptions, setHabitOptions] = useState<HabitOption[]>((habit.options as HabitOption[]) ?? [])
+  const [newOptionLabel, setNewOptionLabel] = useState('')
+  const [newOptionColor, setNewOptionColor] = useState('#10b981')
 
   useEffect(() => {
     if (open) {
@@ -50,6 +53,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
       setUnit(habit.unit ?? ''); setTargetMinutes(habit.target_minutes ?? 25)
       setGroupId(habit.group_id)
       setSessions((habit.sessions as HabitSession[]) ?? []); setNewSessionLabel('')
+      setHabitOptions((habit.options as HabitOption[]) ?? []); setNewOptionLabel(''); setNewOptionColor('#10b981')
     }
   }, [open, habit])
 
@@ -64,6 +68,17 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
     setSessions(sessions.filter(s => s.id !== id))
   }
 
+  const addOption = () => {
+    const label = newOptionLabel.trim()
+    if (!label) return
+    setHabitOptions([...habitOptions, { id: `opt${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, label, color: newOptionColor }])
+    setNewOptionLabel('')
+  }
+
+  const removeOption = (id: string) => {
+    setHabitOptions(habitOptions.filter(o => o.id !== id))
+  }
+
   const handleSave = async () => {
     if (!title.trim()) return
     setSaving(true)
@@ -76,6 +91,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
       target_minutes: trackingType === 'timer' ? targetMinutes : null,
       tags: [],
       sessions: frequency === 'weekly' && sessions.length > 0 ? sessions : null,
+      options: trackingType === 'options' && habitOptions.length > 0 ? habitOptions : null,
     })
     setSaving(false)
     onOpenChange(false)
@@ -110,7 +126,7 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
               <div className="flex-1">
                 <p className="font-semibold">{title || t('habits.habitName')}</p>
                 <p className="text-xs text-muted-foreground">
-                  {frequency === 'daily' ? 'Daily' : `${weeklyTarget}x/week`} · {trackingType === 'boolean' ? t('habits.yesNo') : trackingType}
+                  {frequency === 'daily' ? 'Daily' : `${weeklyTarget}x/week`} · {trackingType === 'boolean' ? t('habits.yesNo') : trackingType === 'options' ? t('habits.options') : trackingType}
                 </p>
               </div>
             </div>
@@ -222,21 +238,74 @@ export function EditHabitDialog({ habit, open, onOpenChange }: Props) {
             {/* Tracking type */}
             <div className="space-y-3">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('habits.trackingType')}</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['boolean', 'numeric', 'timer'] as const).map(tt => (
-                  <button key={tt} onClick={() => setTrackingType(tt)}
+              <div className="grid grid-cols-4 gap-2">
+                {([
+                  { value: 'boolean' as const, label: t('habits.yesNo') },
+                  { value: 'numeric' as const, label: t('habits.number') },
+                  { value: 'timer' as const, label: t('habits.timer') },
+                  { value: 'options' as const, label: t('habits.options') },
+                ]).map(tt => (
+                  <button key={tt.value} onClick={() => setTrackingType(tt.value)}
                     className={cn(
-                      'py-2.5 rounded-lg text-sm font-medium border transition-all capitalize',
-                      trackingType === tt
+                      'py-2.5 rounded-lg text-sm font-medium border transition-all',
+                      trackingType === tt.value
                         ? 'border-transparent'
                         : 'border-border text-muted-foreground hover:text-foreground'
                     )}
-                    style={trackingType === tt ? { backgroundColor: `${colorHex}12`, color: colorHex, boxShadow: `0 0 0 1px ${colorHex}30` } : undefined}
+                    style={trackingType === tt.value ? { backgroundColor: `${colorHex}12`, color: colorHex, boxShadow: `0 0 0 1px ${colorHex}30` } : undefined}
                   >
-                    {tt === 'boolean' ? t('habits.yesNo') : tt === 'numeric' ? t('habits.number') : t('habits.timer')}
+                    {tt.label}
                   </button>
                 ))}
               </div>
+              {trackingType === 'options' && (
+                <div className="space-y-2 p-3 rounded-xl bg-card border border-border">
+                  <div className="flex items-center gap-2">
+                    <ListChecks className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t('habits.optionsLabel')}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {t('habits.optionsHint')}
+                  </p>
+                  {habitOptions.length > 0 && (
+                    <div className="space-y-1">
+                      {habitOptions.map((o) => (
+                        <div key={o.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-secondary/50">
+                          <div className="w-5 h-5 rounded-md shrink-0" style={{ backgroundColor: o.color }} />
+                          <span className="text-xs font-medium flex-1">{o.label}</span>
+                          <button onClick={() => removeOption(o.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2 items-center">
+                    <div className="relative shrink-0">
+                      <div className="w-8 h-8 rounded-lg border border-border overflow-hidden cursor-pointer" style={{ backgroundColor: newOptionColor }}>
+                        <input
+                          type="color"
+                          value={newOptionColor}
+                          onChange={e => setNewOptionColor(e.target.value)}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        />
+                      </div>
+                    </div>
+                    <Input
+                      placeholder={t('habits.optionPlaceholder')}
+                      value={newOptionLabel}
+                      onChange={e => setNewOptionLabel(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addOption())}
+                      className="bg-secondary/50 border-0 h-8 text-xs flex-1"
+                    />
+                    <Button variant="ghost" size="icon" onClick={addOption} disabled={!newOptionLabel.trim()} className="h-8 w-8 shrink-0">
+                      <Plus className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Category */}

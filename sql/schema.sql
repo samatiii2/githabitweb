@@ -28,7 +28,7 @@ create table public.habits (
   icon_name text not null default 'zap',
   color_hex text not null default '#3DD68C',
   frequency text not null default 'daily' check (frequency in ('daily', 'weekly')),
-  tracking_type text not null default 'boolean' check (tracking_type in ('boolean', 'numeric', 'timer')),
+  tracking_type text not null default 'boolean' check (tracking_type in ('boolean', 'numeric', 'timer', 'options')),
   group_id uuid references public.habit_groups(id) on delete set null,
   weekly_target int,
   target_value double precision,
@@ -36,6 +36,7 @@ create table public.habits (
   target_minutes int,
   tags jsonb not null default '[]'::jsonb,
   sessions jsonb,
+  options jsonb,
   is_archived boolean not null default false,
   sort_order int not null default 0,
   created_at timestamptz not null default now()
@@ -53,6 +54,7 @@ create table public.habit_entries (
   value double precision,
   status text not null default 'completed' check (status in ('completed', 'skipped')),
   session_id text,
+  option_id text,
   note text,
   created_at timestamptz not null default now(),
   unique(habit_id, date)

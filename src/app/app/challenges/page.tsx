@@ -35,6 +35,7 @@ export default function TemplatesPage() {
       group_id: null,
       tags: [],
       sessions: null,
+      options: null,
       is_archived: false,
       sort_order: 0,
     })

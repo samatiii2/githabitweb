@@ -102,6 +102,7 @@ export interface HeatmapDay {
   dateStr: string
   status: 'completed' | 'skipped' | 'none' | 'future'
   value?: number | null
+  optionId?: string | null
 }
 
 export function generateYearHeatmapData(entries: HabitEntry[], year?: number): HeatmapDay[] {
@@ -111,8 +112,8 @@ export function generateYearHeatmapData(entries: HabitEntry[], year?: number): H
   const end = endOfYear(new Date(y, 0, 1))
   const today = startOfDay(now)
 
-  const entryMap = new Map<string, { status: string; value: number | null }>()
-  entries.forEach(e => entryMap.set(e.date, { status: e.status, value: e.value }))
+  const entryMap = new Map<string, { status: string; value: number | null; option_id: string | null }>()
+  entries.forEach(e => entryMap.set(e.date, { status: e.status, value: e.value, option_id: e.option_id }))
 
   const days = eachDayOfInterval({ start, end })
   return days.map(date => {
@@ -120,7 +121,7 @@ export function generateYearHeatmapData(entries: HabitEntry[], year?: number): H
     const isFuture = date > today
     const entry = entryMap.get(dateStr)
     const status = isFuture ? 'future' : (entry?.status as 'completed' | 'skipped') ?? 'none'
-    return { date, dateStr, status, value: entry?.value ?? null }
+    return { date, dateStr, status, value: entry?.value ?? null, optionId: entry?.option_id ?? null }
   })
 }
 

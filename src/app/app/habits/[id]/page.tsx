@@ -33,13 +33,14 @@ export default function HabitDetailPage() {
   }
 
   // Unified submit from the popover
-  const handlePopoverSubmit = (date: string, opts: { sessionId?: string; value?: number }) => {
+  const handlePopoverSubmit = (date: string, opts: { sessionId?: string; value?: number; optionId?: string }) => {
     upsertEntry({
       habit_id: habitId,
       date,
       status: 'completed',
       value: opts.value ?? null,
       session_id: opts.sessionId ?? null,
+      option_id: opts.optionId ?? null,
     })
   }
 
@@ -147,13 +148,20 @@ export default function HabitDetailPage() {
                   if (todayEntry?.value != null && habit.tracking_type === 'numeric') {
                     parts.push(`${todayEntry.value} ${habit.unit ?? ''}`.trim())
                   }
+                  if (todayEntry?.option_id && habit.tracking_type === 'options') {
+                    const opts = (habit.options as { id: string; label: string }[]) ?? []
+                    const opt = opts.find(o => o.id === todayEntry.option_id)
+                    if (opt) parts.push(opt.label)
+                  }
                   return parts.length > 0 ? parts.join(' · ') : t('habits.greatJob')
                 }
                 return habit.sessions && (habit.sessions as any[]).length > 0
                   ? t('habits.tapSession')
                   : habit.tracking_type === 'numeric'
                     ? t('habits.enterYourValue')
-                    : t('habits.tapDone')
+                    : habit.tracking_type === 'options'
+                      ? t('habits.pickOption')
+                      : t('habits.tapDone')
               })()}
             </p>
           </div>
@@ -267,7 +275,16 @@ export default function HabitDetailPage() {
           />
           {/* Legend */}
           <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-2 border-t border-border">
-            {habit.tracking_type === 'numeric' && habit.target_value ? (
+            {habit.tracking_type === 'options' && habit.options ? (
+              <>
+                {(habit.options as { id: string; label: string; color: string }[]).map(o => (
+                  <div key={o.id} className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: o.color }} />
+                    {o.label}
+                  </div>
+                ))}
+              </>
+            ) : habit.tracking_type === 'numeric' && habit.target_value ? (
               <>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex }} />
@@ -319,7 +336,16 @@ export default function HabitDetailPage() {
           />
           {/* Legend */}
           <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-4 mt-4 border-t border-border">
-            {habit.tracking_type === 'numeric' && habit.target_value ? (
+            {habit.tracking_type === 'options' && habit.options ? (
+              <>
+                {(habit.options as { id: string; label: string; color: string }[]).map(o => (
+                  <div key={o.id} className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: o.color }} />
+                    {o.label}
+                  </div>
+                ))}
+              </>
+            ) : habit.tracking_type === 'numeric' && habit.target_value ? (
               <>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: habit.color_hex }} />

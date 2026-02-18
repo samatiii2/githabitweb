@@ -7,7 +7,7 @@ import { useT } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils'
 import { Minus, Plus, Check, CheckCircle2, ChevronLeft, X } from 'lucide-react'
 import { startOfWeek, endOfWeek, format } from 'date-fns'
-import type { Habit, HabitEntry, HabitSession } from '@/lib/types/database'
+import type { Habit, HabitEntry, HabitSession, HabitOption } from '@/lib/types/database'
 
 /* ------------------------------------------------------------------ */
 /*  Unified HabitInputPopover                                          */
@@ -18,6 +18,7 @@ import type { Habit, HabitEntry, HabitSession } from '@/lib/types/database'
 /*    Sessions only  → session list → select → done                    */
 /*    Numeric only   → numeric input → confirm → done                  */
 /*    Sessions+Num   → session list → select → numeric input → done    */
+/*    Options        → option list → select → done                     */
 /*    Boolean        → passthrough (no popover)                        */
 /* ------------------------------------------------------------------ */
 
@@ -28,7 +29,7 @@ interface Props {
   entries: HabitEntry[]
   hasEntry: boolean
   onPassthrough: () => void
-  onSubmit: (opts: { sessionId?: string; value?: number }) => void
+  onSubmit: (opts: { sessionId?: string; value?: number; optionId?: string }) => void
   /** When true, the wrapper fills its parent (useful inside CSS grids) */
   fillParent?: boolean
 }
@@ -38,21 +39,23 @@ export function NumericInputPopover({
   onPassthrough, onSubmit, fillParent,
 }: Props) {
   const [open, setOpen] = useState(false)
-  const [step, setStep] = useState<'sessions' | 'numeric'>('sessions')
+  const [step, setStep] = useState<'sessions' | 'numeric' | 'options'>('sessions')
   const [pickedSession, setPickedSession] = useState<{ id: string; label: string } | null>(null)
 
   const sessions = (habit.sessions as HabitSession[]) ?? []
+  const options = (habit.options as HabitOption[]) ?? []
   const hasSessions = sessions.length > 0
+  const hasOptions = options.length > 0
   const isNumeric = habit.tracking_type === 'numeric'
-  const needsPopover = !hasEntry && (hasSessions || isNumeric)
+  const isOptions = habit.tracking_type === 'options'
+  const needsPopover = !hasEntry && (hasSessions || isNumeric || isOptions)
 
-  // Reset step when popover opens
   useEffect(() => {
     if (open) {
       setPickedSession(null)
-      setStep(hasSessions ? 'sessions' : 'numeric')
+      setStep(isOptions ? 'options' : hasSessions ? 'sessions' : 'numeric')
     }
-  }, [open, hasSessions])
+  }, [open, hasSessions, isOptions])
 
   const handleCapture = useCallback((e: React.MouseEvent) => {
     if (needsPopover) {
@@ -77,6 +80,11 @@ export function NumericInputPopover({
     setOpen(false)
   }, [pickedSession, onSubmit])
 
+  const handleOptionSelect = useCallback((optionId: string) => {
+    onSubmit({ optionId })
+    setOpen(false)
+  }, [onSubmit])
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
@@ -92,7 +100,6 @@ export function NumericInputPopover({
         collisionPadding={16}
         onOpenAutoFocus={e => e.preventDefault()}
       >
-        {/* Header — always visible */}
         <PopoverHeader habit={habit} date={date} onClose={() => setOpen(false)} />
 
         {step === 'sessions' && (
@@ -113,6 +120,15 @@ export function NumericInputPopover({
             onCancel={() => setOpen(false)}
           />
         )}
+
+        {step === 'options' && (
+          <OptionsStep
+            habit={habit}
+            options={options}
+            onSelect={handleOptionSelect}
+            onCancel={() => setOpen(false)}
+          />
+        )}
       </PopoverContent>
     </Popover>
   )
@@ -126,22 +142,27 @@ interface ContentProps {
   habit: Habit
   date: string
   entries: HabitEntry[]
-  onSubmit: (opts: { sessionId?: string; value?: number }) => void
+  onSubmit: (opts: { sessionId?: string; value?: number; optionId?: string }) => void
   onClose: () => void
 }
 
 export function HabitInputPopoverContent({ habit, date, entries, onSubmit, onClose }: ContentProps) {
   const sessions = (habit.sessions as HabitSession[]) ?? []
+  const options = (habit.options as HabitOption[]) ?? []
   const hasSessions = sessions.length > 0
+  const hasOptions = options.length > 0
   const isNumeric = habit.tracking_type === 'numeric'
+  const isOptions = habit.tracking_type === 'options'
 
-  const [step, setStep] = useState<'sessions' | 'numeric'>(hasSessions ? 'sessions' : 'numeric')
+  const [step, setStep] = useState<'sessions' | 'numeric' | 'options'>(
+    isOptions ? 'options' : hasSessions ? 'sessions' : 'numeric'
+  )
   const [pickedSession, setPickedSession] = useState<{ id: string; label: string } | null>(null)
 
   useEffect(() => {
     setPickedSession(null)
-    setStep(hasSessions ? 'sessions' : 'numeric')
-  }, [date, hasSessions])
+    setStep(isOptions ? 'options' : hasSessions ? 'sessions' : 'numeric')
+  }, [date, hasSessions, isOptions])
 
   const handleSelectSession = useCallback((session: { id: string; label: string }) => {
     if (isNumeric) {
@@ -158,6 +179,11 @@ export function HabitInputPopoverContent({ habit, date, entries, onSubmit, onClo
     onClose()
   }, [pickedSession, onSubmit, onClose])
 
+  const handleOptionSelect = useCallback((optionId: string) => {
+    onSubmit({ optionId })
+    onClose()
+  }, [onSubmit, onClose])
+
   return (
     <>
       <PopoverHeader habit={habit} date={date} onClose={onClose} />
@@ -170,6 +196,14 @@ export function HabitInputPopoverContent({ habit, date, entries, onSubmit, onClo
           sessionLabel={pickedSession?.label}
           onSubmit={handleNumericConfirm}
           onBack={hasSessions ? () => { setStep('sessions'); setPickedSession(null) } : undefined}
+          onCancel={onClose}
+        />
+      )}
+      {step === 'options' && (
+        <OptionsStep
+          habit={habit}
+          options={options}
+          onSelect={handleOptionSelect}
           onCancel={onClose}
         />
       )}
@@ -465,6 +499,52 @@ function NumericStep({ habit, sessionLabel, onSubmit, onBack, onCancel }: {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Options Step                                                       */
+/* ------------------------------------------------------------------ */
+
+function OptionsStep({ habit, options, onSelect, onCancel }: {
+  habit: Habit
+  options: HabitOption[]
+  onSelect: (optionId: string) => void
+  onCancel?: () => void
+}) {
+  const t = useT()
+
+  return (
+    <div className="px-3 py-2.5 space-y-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {t('habits.pickOption')}
+      </p>
+      <div className="space-y-1 max-h-[240px] overflow-y-auto">
+        {options.map((option) => (
+          <button
+            key={option.id}
+            onClick={() => onSelect(option.id)}
+            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left transition-all hover:bg-secondary/80 active:scale-[0.98] cursor-pointer border border-border hover:border-border/80"
+          >
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ backgroundColor: option.color }}
+            >
+              <div className="w-3 h-3 rounded-full bg-white/80" />
+            </div>
+            <span className="text-xs font-medium flex-1">{option.label}</span>
+          </button>
+        ))}
+      </div>
+      {onCancel && (
+        <button
+          onClick={onCancel}
+          className="w-full h-8 rounded-lg text-xs font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 flex items-center justify-center gap-1.5 transition-colors mt-1"
+        >
+          {t('common.cancel')}
+        </button>
+      )}
     </div>
   )
 }
