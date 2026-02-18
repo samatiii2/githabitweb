@@ -339,6 +339,7 @@ const en: TranslationDict = {
     noActiveTasks: 'No active tasks',
     noActiveTasksDesc: 'Create a task with the quick add bar above or the "New task" button.',
     noTasks: 'No tasks',
+    dropHere: 'Drop here',
     noDate: 'No date',
     overdue: 'Overdue',
     tomorrow: 'Tomorrow',

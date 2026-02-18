@@ -338,6 +338,7 @@ const es: TranslationDict = {
     noActiveTasks: 'No hay tareas activas',
     noActiveTasksDesc: 'Crea una tarea con la barra de creación rápida de arriba o el botón "Nueva tarea".',
     noTasks: 'Sin tareas',
+    dropHere: 'Soltar aquí',
     noDate: 'Sin fecha',
     overdue: 'Atrasada',
     tomorrow: 'Mañana',

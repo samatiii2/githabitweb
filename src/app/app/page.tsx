@@ -287,7 +287,7 @@ export default function DashboardPage() {
                       <DynamicIcon name={g.icon_name} className="w-3.5 h-3.5 shrink-0" style={{ color: g.color_hex }} />
                       <span className="truncate">{g.name}</span>
                     </button>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover/cat:opacity-100 transition-opacity shrink-0 pr-1">
+                    <div className="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover/cat:opacity-100 transition-opacity shrink-0 pr-1">
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingGroupId(g.id); setEditingGroupName(g.name) }}
                         className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"

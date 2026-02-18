@@ -338,6 +338,7 @@ const fr: TranslationDict = {
     noActiveTasks: 'Aucune tâche active',
     noActiveTasksDesc: 'Créez une tâche avec la barre d\'ajout rapide ci-dessus ou le bouton « Nouvelle tâche ».',
     noTasks: 'Aucune tâche',
+    dropHere: 'Déposer ici',
     noDate: 'Sans date',
     overdue: 'En retard',
     tomorrow: 'Demain',

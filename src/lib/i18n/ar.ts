@@ -338,6 +338,7 @@ const ar: TranslationDict = {
     noActiveTasks: 'لا توجد مهام نشطة',
     noActiveTasksDesc: 'أنشئ مهمة باستخدام شريط الإضافة السريعة أعلاه أو زر "مهمة جديدة".',
     noTasks: 'لا توجد مهام',
+    dropHere: 'أفلت هنا',
     noDate: 'بدون تاريخ',
     overdue: 'متأخرة',
     tomorrow: 'غداً',

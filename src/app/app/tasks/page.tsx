@@ -104,7 +104,7 @@ export default function TasksPage() {
     selectedProjectId, selectedLabelId, selectedTaskId,
     setSmartView, setViewMode, setSearchQuery, setSortBy, setSortDirection, setGroupBy,
     setPriorityFilter, setSelectedProjectId, setSelectedLabelId, setSelectedTaskId,
-    fetchAll, createTask, toggleTask, deleteTask, getSubtasks, getLabelsForTask,
+    fetchAll, createTask, updateTask, toggleTask, deleteTask, getSubtasks, getLabelsForTask,
     createProject, updateProject, deleteProject, createLabel,
   } = store
 
@@ -113,6 +113,10 @@ export default function TasksPage() {
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
+
+  // Board drag-and-drop
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null)
 
   // Create project/label dialogs
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
@@ -547,7 +551,7 @@ export default function TasksPage() {
                           <DynamicIcon name={p.icon_name} className="w-3.5 h-3.5 shrink-0" style={{ color: p.color_hex }} />
                           <span className="truncate">{p.name}</span>
                         </button>
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover/cat:opacity-100 transition-opacity shrink-0 pr-1">
+                        <div className="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover/cat:opacity-100 transition-opacity shrink-0 pr-1">
                           <button
                             onClick={(e) => { e.stopPropagation(); openEditProject(p) }}
                             className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -805,9 +809,11 @@ export default function TasksPage() {
         {/* ─── Board view ─── */}
         {viewMode === 'board' && (
           <div className="flex-1 overflow-x-auto px-4 lg:px-6 pb-6">
-            <div className="flex gap-4 h-full min-w-[700px]">
+            {/* Desktop: side-by-side columns with drag-and-drop */}
+            <div className="hidden lg:flex gap-4 h-full min-w-[700px]">
               {boardColumns.map(col => {
                 const Icon = col.icon
+                const isOver = dragOverCol === col.status && dragTaskId !== null
                 return (
                   <div key={col.status} className="flex-1 flex flex-col min-w-[220px]">
                     <div className="flex items-center gap-2 px-1 mb-3">
@@ -815,42 +821,189 @@ export default function TasksPage() {
                       <h3 className="text-xs font-semibold uppercase tracking-wider">{col.title}</h3>
                       <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">{col.tasks.length}</span>
                     </div>
-                    <div className="flex-1 bg-secondary/20 rounded-xl border border-dashed border-border/50 p-2 space-y-2 overflow-y-auto">
-                      {col.tasks.map(task => (
-                        <button
-                          key={task.id}
-                          onClick={() => setSelectedTaskId(task.id)}
-                          className={cn(
-                            'w-full text-left card-elevated rounded-lg p-3 space-y-2 transition-all hover:scale-[1.01]',
-                            selectedTaskId === task.id && 'ring-1 ring-primary/30'
-                          )}
-                        >
-                          <p className="text-sm font-medium leading-snug">{task.title}</p>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: PRIORITY_LABELS[task.priority].color }} />
-                            {task.due_date && (
-                              <span className={cn(
-                                'text-[10px] flex items-center gap-1',
-                                isDueOverdue(task.due_date) ? 'text-red-400' : 'text-muted-foreground'
-                              )}>
-                                <Clock className="w-2.5 h-2.5" /> {formatDueDate(task.due_date)}
-                              </span>
+                    <div
+                      className={cn(
+                        'flex-1 rounded-xl border-2 border-dashed p-2 space-y-2 overflow-y-auto transition-all duration-200',
+                        isOver
+                          ? 'border-primary/50 bg-primary/5 scale-[1.01]'
+                          : 'border-border/50 bg-secondary/20'
+                      )}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        setDragOverCol(col.status)
+                      }}
+                      onDragEnter={(e) => {
+                        e.preventDefault()
+                        setDragOverCol(col.status)
+                      }}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setDragOverCol(null)
+                        }
+                      }}
+                      onDrop={async (e) => {
+                        e.preventDefault()
+                        setDragOverCol(null)
+                        const taskId = e.dataTransfer.getData('text/plain') || dragTaskId
+                        if (!taskId) return
+                        const task = tasks.find(t => t.id === taskId)
+                        if (!task || task.status === col.status) { setDragTaskId(null); return }
+                        const isCompleted = col.status === 'done'
+                        await updateTask(taskId, {
+                          status: col.status,
+                          is_completed: isCompleted,
+                          completed_at: isCompleted ? new Date().toISOString() : null,
+                        })
+                        setDragTaskId(null)
+                      }}
+                    >
+                      {col.tasks.map(task => {
+                        const isDragging = dragTaskId === task.id
+                        return (
+                          <div
+                            key={task.id}
+                            draggable
+                            onDragStart={(e) => {
+                              setDragTaskId(task.id)
+                              e.dataTransfer.setData('text/plain', task.id)
+                              e.dataTransfer.effectAllowed = 'move'
+                              const el = e.currentTarget
+                              requestAnimationFrame(() => el.classList.add('opacity-40'))
+                            }}
+                            onDragEnd={(e) => {
+                              e.currentTarget.classList.remove('opacity-40')
+                              setDragTaskId(null)
+                              setDragOverCol(null)
+                            }}
+                            onClick={() => setSelectedTaskId(task.id)}
+                            className={cn(
+                              'w-full text-left card-elevated rounded-lg p-3 space-y-2 transition-all cursor-grab active:cursor-grabbing select-none',
+                              selectedTaskId === task.id && 'ring-1 ring-primary/30',
+                              isDragging && 'opacity-40 scale-95'
                             )}
-                            {task.recurrence !== 'none' && (
-                              <span className="text-[9px] text-muted-foreground">🔄</span>
+                          >
+                            <p className="text-sm font-medium leading-snug">{task.title}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: PRIORITY_LABELS[task.priority].color }} />
+                              {task.due_date && (
+                                <span className={cn(
+                                  'text-[10px] flex items-center gap-1',
+                                  isDueOverdue(task.due_date) ? 'text-red-400' : 'text-muted-foreground'
+                                )}>
+                                  <Clock className="w-2.5 h-2.5" /> {formatDueDate(task.due_date)}
+                                </span>
+                              )}
+                              {task.recurrence !== 'none' && (
+                                <span className="text-[9px] text-muted-foreground">🔄</span>
+                              )}
+                            </div>
+                            {getLabelsForTask(task.id).length > 0 && (
+                              <div className="flex gap-1 flex-wrap">
+                                {getLabelsForTask(task.id).map(l => (
+                                  <span key={l.id} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${l.color_hex}12`, color: l.color_hex }}>
+                                    {l.name}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </div>
-                          {getLabelsForTask(task.id).length > 0 && (
-                            <div className="flex gap-1 flex-wrap">
-                              {getLabelsForTask(task.id).map(l => (
-                                <span key={l.id} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${l.color_hex}12`, color: l.color_hex }}>
-                                  {l.name}
-                                </span>
-                              ))}
+                        )
+                      })}
+                      {col.tasks.length === 0 && (
+                        <div className={cn(
+                          'flex flex-col items-center justify-center h-20 rounded-lg border border-dashed transition-colors',
+                          isOver ? 'border-primary/40 bg-primary/5 text-primary' : 'border-transparent text-muted-foreground'
+                        )}>
+                          <span className="text-[11px]">
+                            {isOver ? t('tasks.dropHere') : t('tasks.noTasks')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Mobile: stacked columns with status-change buttons */}
+            <div className="lg:hidden space-y-5">
+              {boardColumns.map(col => {
+                const Icon = col.icon
+                return (
+                  <div key={col.status}>
+                    <div className="flex items-center gap-2 px-1 mb-2 sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-1">
+                      <Icon className="w-4 h-4" style={{ color: col.color }} />
+                      <h3 className="text-xs font-semibold uppercase tracking-wider">{col.title}</h3>
+                      <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">{col.tasks.length}</span>
+                    </div>
+                    <div className="rounded-xl border border-dashed border-border/50 bg-secondary/20 p-2 space-y-2">
+                      {col.tasks.map(task => {
+                        const statusOptions = (['todo', 'doing', 'done'] as const).filter(s => s !== col.status)
+                        return (
+                          <div
+                            key={task.id}
+                            className={cn(
+                              'w-full text-left card-elevated rounded-lg p-3 space-y-2 transition-all',
+                              selectedTaskId === task.id && 'ring-1 ring-primary/30'
+                            )}
+                          >
+                            <div className="flex items-start gap-2" onClick={() => setSelectedTaskId(task.id)}>
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <p className="text-sm font-medium leading-snug">{task.title}</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: PRIORITY_LABELS[task.priority].color }} />
+                                  {task.due_date && (
+                                    <span className={cn(
+                                      'text-[10px] flex items-center gap-1',
+                                      isDueOverdue(task.due_date) ? 'text-red-400' : 'text-muted-foreground'
+                                    )}>
+                                      <Clock className="w-2.5 h-2.5" /> {formatDueDate(task.due_date)}
+                                    </span>
+                                  )}
+                                  {task.recurrence !== 'none' && (
+                                    <span className="text-[9px] text-muted-foreground">🔄</span>
+                                  )}
+                                </div>
+                                {getLabelsForTask(task.id).length > 0 && (
+                                  <div className="flex gap-1 flex-wrap">
+                                    {getLabelsForTask(task.id).map(l => (
+                                      <span key={l.id} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${l.color_hex}12`, color: l.color_hex }}>
+                                        {l.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </button>
-                      ))}
+                            {/* Mobile status-change buttons */}
+                            <div className="flex gap-1.5 pt-1 border-t border-border/30 mt-1">
+                              {statusOptions.map(targetStatus => {
+                                const cfg = boardColumns.find(c => c.status === targetStatus)!
+                                const TargetIcon = cfg.icon
+                                return (
+                                  <button
+                                    key={targetStatus}
+                                    onClick={async (e) => {
+                                      e.stopPropagation()
+                                      const isCompleted = targetStatus === 'done'
+                                      await updateTask(task.id, {
+                                        status: targetStatus,
+                                        is_completed: isCompleted,
+                                        completed_at: isCompleted ? new Date().toISOString() : null,
+                                      })
+                                    }}
+                                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-medium bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                                  >
+                                    <TargetIcon className="w-3 h-3" style={{ color: cfg.color }} />
+                                    {cfg.title}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
                       {col.tasks.length === 0 && (
                         <div className="flex items-center justify-center h-16 text-[11px] text-muted-foreground">
                           {t('tasks.noTasks')}
@@ -1343,7 +1496,7 @@ function CalendarView({
                 </span>
                 <button
                   onClick={(e) => handleAddForDay(dateStr, e)}
-                  className="w-5 h-5 rounded-md flex items-center justify-center opacity-0 group-hover/day:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  className="w-5 h-5 rounded-md flex items-center justify-center opacity-60 lg:opacity-0 lg:group-hover/day:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -1384,11 +1537,11 @@ function CalendarView({
           </PopoverAnchor>
           {popover && (
             <PopoverContent
-              className="w-[340px] p-0 shadow-xl border-border"
+              className="w-[min(340px,calc(100vw-2rem))] p-0 shadow-xl border-border"
               side="bottom"
               align="center"
               sideOffset={6}
-              collisionPadding={16}
+              collisionPadding={12}
               onOpenAutoFocus={e => e.preventDefault()}
             >
               <CalendarTaskPopoverForm
@@ -1510,6 +1663,7 @@ function CalendarTaskPopoverForm({
 }) {
   const t = useT()
   const [title, setTitle] = useState('')
+  const [note, setNote] = useState('')
   const [priority, setPriority] = useState(4)
   const [projectId, setProjectId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -1525,13 +1679,14 @@ function CalendarTaskPopoverForm({
     try {
       await onSubmit({
         title: title.trim(),
-        note: null,
+        note: note.trim() || null,
         due_date: dateStr,
         priority,
         recurrence: 'none',
         projectId,
       })
       setTitle('')
+      setNote('')
       setPriority(4)
       setProjectId(null)
       requestAnimationFrame(() => inputRef.current?.focus())
@@ -1567,6 +1722,13 @@ function CalendarTaskPopoverForm({
           onKeyDown={handleKeyDown}
           placeholder={t('tasks.addTask')}
           className="w-full bg-transparent text-sm font-medium placeholder:text-muted-foreground/50 outline-none"
+        />
+        <input
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Description"
+          className="w-full bg-transparent text-xs text-muted-foreground placeholder:text-muted-foreground/30 outline-none mt-1.5"
         />
       </div>
 
@@ -1735,7 +1897,7 @@ function TaskRow({
 
       <button
         onClick={(e) => { e.stopPropagation(); onDelete() }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0 mt-0.5"
+        className="opacity-60 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0 mt-0.5"
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>
