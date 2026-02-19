@@ -11,13 +11,15 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { DynamicIcon } from '@/components/dynamic-icon'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
-  Plus, List, Grid3X3, CalendarDays, Search, Flame,
+  Plus, List, Grid3X3, CalendarDays, Search, Flame, Trophy, Check,
   Target, TrendingUp, Sparkles, ChevronDown, ChevronUp, FolderOpen, X, Pencil, Trash2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { calculateStreak } from '@/lib/utils/stats'
+import { HABIT_TEMPLATES, CATEGORIES, type HabitTemplate } from '@/lib/data/challenges'
 import { useT } from '@/lib/i18n/provider'
 
 export default function DashboardPage() {
@@ -27,7 +29,7 @@ export default function DashboardPage() {
     selectedGroupId, setSelectedGroupId,
     searchQuery, setSearchQuery,
     fetchHabits, fetchEntries, fetchGroups,
-    toggleEntry, upsertEntry, createGroup, updateGroup, deleteGroup
+    toggleEntry, upsertEntry, createHabit, createGroup, updateGroup, deleteGroup
   } = useHabitsStore()
 
   const t = useT()
@@ -37,6 +39,7 @@ export default function DashboardPage() {
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false)
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editingGroupName, setEditingGroupName] = useState('')
+  const [challengesOpen, setChallengesOpen] = useState(false)
 
   // Simple toggle for boolean habits or cycling existing entries
   const handleToggle = (habitId: string, date?: string) => {
@@ -117,7 +120,7 @@ export default function DashboardPage() {
   })()
 
   return (
-    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-5">
+    <div className="p-4 lg:p-8 max-w-[2000px] mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -126,13 +129,23 @@ export default function DashboardPage() {
             {format(new Date(), 'EEEE, MMMM d, yyyy')}
           </p>
         </div>
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-semibold shadow-lg shadow-primary/10"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('habits.newHabit')}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setChallengesOpen(true)}
+            className="gap-2 font-medium border-amber-500/30 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+          >
+            <Trophy className="w-4 h-4" />
+            <span className="hidden sm:inline">{t('challenges.title')}</span>
+          </Button>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-semibold shadow-lg shadow-primary/10"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">{t('habits.newHabit')}</span>
+          </Button>
+        </div>
       </div>
 
       {/* Stats — collapsible, hidden by default */}
@@ -432,7 +445,7 @@ export default function DashboardPage() {
 
       {/* Year Heatmap view */}
       {viewMode === 'heatmap' && filteredHabits.length > 0 && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 min-[1920px]:grid-cols-3 gap-4">
           {filteredHabits.map(habit => (
             <HabitHeatmapCard
               key={habit.id}
@@ -452,7 +465,7 @@ export default function DashboardPage() {
 
       {/* Month view — calendar cards with interactive cells */}
       {viewMode === 'month' && filteredHabits.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1920px]:grid-cols-5 min-[2400px]:grid-cols-6 gap-4">
           {filteredHabits.map(habit => (
             <HabitMonthCard
               key={habit.id}
@@ -492,8 +505,146 @@ export default function DashboardPage() {
 
       <CreateHabitDialog open={createOpen} onOpenChange={setCreateOpen} />
 
+      {/* Challenges Slide Panel */}
+      <Sheet open={challengesOpen} onOpenChange={setChallengesOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg lg:max-w-xl p-0 overflow-y-auto">
+          <SheetHeader className="px-5 pt-5 pb-0">
+            <SheetTitle className="flex items-center gap-2 text-xl">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              {t('challenges.title')}
+            </SheetTitle>
+            <p className="text-sm text-muted-foreground">{t('challenges.subtitle', { count: HABIT_TEMPLATES.length })}</p>
+          </SheetHeader>
+          <ChallengesPanel createHabit={createHabit} />
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
 
+// ─── Challenges Panel (embedded in sheet) ──────────────
+function ChallengesPanel({ createHabit }: {
+  createHabit: (data: any) => Promise<any>
+}) {
+  const t = useT()
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
+  const filtered = selectedCategory
+    ? HABIT_TEMPLATES.filter(h => h.category === selectedCategory)
+    : HABIT_TEMPLATES
+
+  const handleAdd = async (template: HabitTemplate) => {
+    if (addedIds.has(template.id) || loadingId) return
+    setLoadingId(template.id)
+    await createHabit({
+      title: template.title,
+      icon_name: template.iconName,
+      color_hex: template.colorHex,
+      frequency: template.frequency,
+      tracking_type: template.trackingType,
+      target_value: template.targetValue ?? null,
+      unit: template.unit ?? null,
+      target_minutes: template.targetMinutes ?? null,
+      weekly_target: template.frequency === 'weekly' ? 5 : null,
+      group_id: null,
+      tags: [],
+      sessions: null,
+      options: null,
+      is_archived: false,
+      sort_order: 0,
+    })
+    setAddedIds(prev => new Set(prev).add(template.id))
+    setLoadingId(null)
+  }
+
+  return (
+    <div className="px-5 pb-6 space-y-4">
+      {/* Category pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 sticky top-0 bg-background/95 backdrop-blur-sm pt-2 -mt-1 z-10">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={cn(
+            'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
+            !selectedCategory
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+              : 'bg-secondary text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {t('challenges.all')}
+        </button>
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
+              selectedCategory === cat
+                ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Template grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {filtered.map(template => {
+          const isAdded = addedIds.has(template.id)
+          const isLoading = loadingId === template.id
+          return (
+            <button
+              key={template.id}
+              onClick={() => handleAdd(template)}
+              disabled={isAdded || isLoading}
+              className={cn(
+                'card-elevated rounded-xl p-4 text-left transition-all duration-200 group',
+                isAdded
+                  ? 'opacity-60 cursor-default'
+                  : 'hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: `${template.colorHex}15` }}
+                >
+                  <DynamicIcon name={template.iconName} className="w-5 h-5" style={{ color: template.colorHex }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm leading-snug truncate">{template.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+                    {template.description}
+                  </p>
+                </div>
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                  style={{
+                    backgroundColor: isAdded ? `${template.colorHex}20` : `${template.colorHex}10`,
+                    color: template.colorHex,
+                  }}
+                >
+                  {isAdded ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                </div>
+              </div>
+              <div className="mt-2 flex items-center gap-1.5">
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${template.colorHex}10`, color: template.colorHex }}
+                >
+                  {template.trackingType === 'timer' ? `${template.targetMinutes} min`
+                    : template.trackingType === 'numeric' ? `${template.targetValue} ${template.unit}`
+                    : template.frequency === 'weekly' ? 'Hebdo' : 'Oui/Non'}
+                </span>
+                <span className="text-[10px] text-muted-foreground">{template.category}</span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -420,7 +420,7 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
             {/* Icon */}
             <div className="space-y-3">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Icon</Label>
-              <div className="grid grid-cols-8 gap-1.5">
+              <div className="grid grid-cols-8 gap-1.5 max-h-[180px] overflow-y-auto p-0.5">
                 {HABIT_ICONS.map(icon => (
                   <button
                     key={icon}
@@ -446,13 +446,13 @@ export function CreateHabitDialog({ open, onOpenChange }: Props) {
             {/* Color */}
             <div className="space-y-3">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Color</Label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {COLORS.map(c => (
                   <button
                     key={c}
                     onClick={() => setColorHex(c)}
                     className={cn(
-                      'w-8 h-8 rounded-full transition-all',
+                      'w-7 h-7 rounded-full transition-all',
                       colorHex === c && 'ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110'
                     )}
                     style={{ backgroundColor: c }}

@@ -325,6 +325,8 @@ const fr: TranslationDict = {
     noResultsTitle: 'Aucun résultat',
     noProjectTasks: 'Aucune tâche dans cette catégorie',
     noProjectTasksDesc: 'Assignez des tâches à cette catégorie depuis le panneau de détail.',
+    showCompleted: 'Afficher terminées',
+    hideCompleted: 'Masquer terminées',
     noLabelTasks: 'Aucune tâche avec cette étiquette',
     noLabelTasksDesc: 'Assignez des étiquettes aux tâches depuis le panneau de détail.',
     noTodayTasks: "Rien de prévu aujourd'hui",

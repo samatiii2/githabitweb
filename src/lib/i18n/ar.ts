@@ -325,6 +325,8 @@ const ar: TranslationDict = {
     noResultsTitle: 'لا توجد نتائج',
     noProjectTasks: 'لا توجد مهام في هذه الفئة',
     noProjectTasksDesc: 'أسنِد المهام لهذه الفئة من لوحة تفاصيل المهمة.',
+    showCompleted: 'إظهار المكتملة',
+    hideCompleted: 'إخفاء المكتملة',
     noLabelTasks: 'لا توجد مهام بهذا التصنيف',
     noLabelTasksDesc: 'أسنِد التصنيفات للمهام من لوحة تفاصيل المهمة.',
     noTodayTasks: 'لا شيء مستحق اليوم',

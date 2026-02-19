@@ -325,6 +325,8 @@ const es: TranslationDict = {
     noResultsTitle: 'Sin resultados',
     noProjectTasks: 'No hay tareas en esta categoría',
     noProjectTasksDesc: 'Asigna tareas a esta categoría desde el panel de detalles.',
+    showCompleted: 'Mostrar completadas',
+    hideCompleted: 'Ocultar completadas',
     noLabelTasks: 'No hay tareas con esta etiqueta',
     noLabelTasksDesc: 'Asigna etiquetas a las tareas desde el panel de detalles de la tarea.',
     noTodayTasks: 'Nada vence hoy',

@@ -113,6 +113,7 @@ export default function TasksPage() {
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
+  const [hideCompletedInProject, setHideCompletedInProject] = useState(true)
 
   // Board drag-and-drop
   const [dragTaskId, setDragTaskId] = useState<string | null>(null)
@@ -186,12 +187,18 @@ export default function TasksPage() {
     if (selectedProjectId) {
       const taskIds = new Set(store.projectLinks.filter(l => l.project_id === selectedProjectId).map(l => l.task_id))
       result = result.filter(t => taskIds.has(t.id))
+      if (hideCompletedInProject) {
+        result = result.filter(t => recentlyCompleted.has(t.id) || !t.is_completed)
+      }
     }
 
     // Label filter
     if (selectedLabelId) {
       const taskIds = new Set(store.labelLinks.filter(l => l.label_id === selectedLabelId).map(l => l.task_id))
       result = result.filter(t => taskIds.has(t.id))
+      if (hideCompletedInProject) {
+        result = result.filter(t => recentlyCompleted.has(t.id) || !t.is_completed)
+      }
     }
 
     // Priority filter
@@ -501,12 +508,9 @@ export default function TasksPage() {
       <div className={cn('flex-1 flex flex-col min-w-0 overflow-hidden', selectedTaskId && 'hidden lg:flex')}>
         {/* Header */}
         <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-3 space-y-3 shrink-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold tracking-tight">{currentViewLabel}</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">{currentViewDesc}</p>
-            </div>
-{/* Add task button removed — inline card below serves the same purpose */}
+          <div>
+            <h1 className="text-xl lg:text-2xl font-bold tracking-tight">{currentViewLabel}</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">{currentViewDesc}</p>
           </div>
 
           {/* Mobile: project dropdown + smart view tabs + label filter */}
@@ -712,6 +716,22 @@ export default function TasksPage() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Hide completed (shown when project/label selected) */}
+            {(selectedProjectId || selectedLabelId) && (
+              <button
+                onClick={() => setHideCompletedInProject(v => !v)}
+                className={cn(
+                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0',
+                  hideCompletedInProject
+                    ? 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    : 'bg-emerald-500/10 text-emerald-500'
+                )}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {hideCompletedInProject ? t('tasks.showCompleted') : t('tasks.hideCompleted')}
+              </button>
+            )}
 
             {/* View mode */}
             <div className="flex items-center bg-secondary/80 rounded-lg p-0.5 border border-border/50 ml-auto">

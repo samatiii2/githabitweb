@@ -85,11 +85,17 @@ export function Heatmap({
     return new Map((habit.options as { id: string; color: string }[]).map(o => [o.id, o.color]))
   }, [isOptions, habit?.options])
 
-  const handleCellClick = useCallback((day: HeatmapDay, cellX: number, cellY: number) => {
+  const handleCellClick = useCallback((day: HeatmapDay, svgX: number, svgY: number) => {
     if (day.status === 'future') return
     const hasExistingEntry = day.status === 'completed' || day.status === 'skipped'
     if (!hasExistingEntry && needsPopoverForHabit) {
-      setPopover({ dateStr: day.dateStr, x: cellX, y: cellY })
+      const svgEl = containerRef.current?.querySelector('svg')
+      if (svgEl) {
+        const rect = svgEl.getBoundingClientRect()
+        const vbWidth = svgEl.viewBox?.baseVal?.width || rect.width
+        const scale = rect.width / vbWidth
+        setPopover({ dateStr: day.dateStr, x: svgX * scale, y: svgY * scale })
+      }
     } else {
       onToggle?.(day.dateStr)
     }
@@ -150,8 +156,12 @@ export function Heatmap({
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="w-full overflow-x-auto pb-2 -mb-2 relative" ref={containerRef}>
-        <svg width={svgWidth} height={svgHeight} className="overflow-visible min-w-fit">
+      <div className="w-full pb-2 -mb-2 relative" ref={containerRef}>
+        <svg
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          preserveAspectRatio="xMinYMin meet"
+          className="overflow-visible w-full h-auto"
+        >
           {/* Month labels */}
           {showMonthLabels && weeks.map((week, weekIdx) => {
             const firstRealDay = week.find(d => d.dateStr)
@@ -240,7 +250,11 @@ export function Heatmap({
         </svg>
 
         {/* Floating popover for SVG cells */}
-        {habit && onPopoverSubmit && (
+        {habit && onPopoverSubmit && (() => {
+          const svgEl = containerRef.current?.querySelector('svg')
+          const vbWidth = svgEl?.viewBox?.baseVal?.width || svgWidth
+          const scale = svgEl ? svgEl.getBoundingClientRect().width / vbWidth : 1
+          return (
           <Popover open={popoverOpen} onOpenChange={(open) => { if (!open) setPopover(null) }}>
             <PopoverAnchor asChild>
               <div
@@ -248,8 +262,8 @@ export function Heatmap({
                 style={{
                   left: popover ? popover.x : 0,
                   top: popover ? popover.y : 0,
-                  width: cellSize,
-                  height: cellSize,
+                  width: cellSize * scale,
+                  height: cellSize * scale,
                 }}
               />
             </PopoverAnchor>
@@ -272,7 +286,8 @@ export function Heatmap({
               </PopoverContent>
             )}
           </Popover>
-        )}
+          )
+        })()}
       </div>
     </TooltipProvider>
   )

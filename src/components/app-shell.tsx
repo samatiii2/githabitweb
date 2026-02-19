@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import {
-  Flame, CheckSquare, Trophy, Settings, LogOut, Menu, X,
+  Flame, CheckSquare, Settings, LogOut, Menu, X,
   ChevronLeft, LayoutDashboard
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,6 @@ import { cn } from '@/lib/utils'
 const NAV_ITEMS = [
   { href: '/app', label: 'Habits', icon: LayoutDashboard, description: 'Track daily habits' },
   { href: '/app/tasks', label: 'Tasks', icon: CheckSquare, description: 'Manage your tasks' },
-  { href: '/app/challenges', label: 'Challenges', icon: Trophy, description: 'Start a challenge' },
   { href: '/app/settings', label: 'Settings', icon: Settings, description: 'App settings' },
 ]
 
