@@ -145,6 +145,26 @@ const en: TranslationDict = {
     ctaButton: 'Create free account',
     ctaNoCC: 'No credit card required · Set up in seconds',
 
+    tabDashboard: 'Dashboard',
+    tabTasks: 'Tasks',
+    tabCalendar: 'Calendar',
+    tabMobile: 'Mobile',
+
+    discoverSection: 'Explore the App',
+    discoverTitle: 'See every view before you sign up',
+    discoverDesc: 'Switch between views to explore the full experience — dashboard, task board, calendar, and mobile.',
+
+    testimonialSection: 'What users say',
+    testimonialTitle: 'Loved by people who want to grow',
+    testimonial1: 'I finally have a clear picture of my habits over the entire year. The heatmaps make it so satisfying to keep going.',
+    testimonial1Role: 'Software Engineer',
+    testimonial2: 'giHabit replaced three apps for me — habit tracker, task manager, and timer. Everything in one place.',
+    testimonial2Role: 'Entrepreneur',
+    testimonial3: 'The challenges helped me kickstart a meditation routine I have kept for 4 months now. Simple yet powerful.',
+    testimonial3Role: 'UX Designer',
+
+    tryClicking: '← Try clicking the checkboxes!',
+
     footerRights: 'All rights reserved.',
     footerTagline: 'Made with care for people who want to grow.',
   },

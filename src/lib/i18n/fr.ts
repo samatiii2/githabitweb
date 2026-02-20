@@ -144,6 +144,26 @@ const fr: TranslationDict = {
     ctaButton: 'Créer un compte gratuit',
     ctaNoCC: 'Sans carte bancaire · Configuration en quelques secondes',
 
+    tabDashboard: 'Tableau de bord',
+    tabTasks: 'Tâches',
+    tabCalendar: 'Calendrier',
+    tabMobile: 'Mobile',
+
+    discoverSection: 'Explorez l\'application',
+    discoverTitle: 'Découvrez chaque vue avant de vous inscrire',
+    discoverDesc: 'Naviguez entre les vues pour explorer l\'expérience complète — tableau de bord, gestion des tâches, calendrier et mobile.',
+
+    testimonialSection: 'Ce que disent les utilisateurs',
+    testimonialTitle: 'Adopté par ceux qui veulent progresser',
+    testimonial1: 'J\'ai enfin une vue claire de mes habitudes sur toute l\'année. Les cartes de chaleur rendent le suivi tellement satisfaisant.',
+    testimonial1Role: 'Développeur logiciel',
+    testimonial2: 'giHabit a remplacé trois applications — suivi d\'habitudes, gestionnaire de tâches et minuteur. Tout est au même endroit.',
+    testimonial2Role: 'Entrepreneur',
+    testimonial3: 'Les défis m\'ont aidée à démarrer une routine de méditation que je maintiens depuis 4 mois. Simple mais puissant.',
+    testimonial3Role: 'Designer UX',
+
+    tryClicking: '← Essayez de cliquer sur les cases !',
+
     footerRights: 'Tous droits réservés.',
     footerTagline: 'Fait avec soin pour ceux qui veulent progresser.',
   },
